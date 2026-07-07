@@ -345,13 +345,26 @@
                 {{ now()->format('d/m/Y') }}
             </span>
         </h5>
-        <form action="{{ route('chauffeur.logout') }}" method="POST" class="mb-0">
-            @csrf
-            <button type="submit" class="btn btn-sm btn-outline-light" style="font-size:0.7rem; padding:3px 10px;">
-                <i class="fas fa-sign-out-alt"></i>
+
+        <div class="d-flex align-items-center gap-2">
+            <!-- Bouton Actualiser - Version plus petite -->
+            <button onclick="window.location.reload()" 
+                    class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
+                    style="padding: 5px 12px; font-size: 0.85rem;">
+                <i class="fas fa-sync-alt"></i>
+                <span>Actualiser</span>
             </button>
-        </form>
+
+            <!-- Bouton Déconnexion -->
+            <form action="{{ route('chauffeur.logout') }}" method="POST" class="mb-0">
+                @csrf
+                <button type="submit" class="btn btn-sm btn-outline-light" style="font-size:0.85rem; padding:6px 12px;">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </form>
+        </div>
     </div>
+
     <div class="stats-bar">
         <div class="stat-pill orange">📦 {{ $stats['total'] }} pièce{{ $stats['total'] > 1 ? 's' : '' }}</div>
         <div class="stat-pill green">✅ {{ $stats['recupere'] }} récupérée{{ $stats['recupere'] > 1 ? 's' : '' }}</div>
