@@ -13,7 +13,7 @@ class CreateTourneeParametresTable extends Migration
             $table->foreignId('site_id')->constrained('sites')->onDelete('cascade');
 
             // Jours actifs — JSON array ex: ["lundi","mardi","mercredi","jeudi","vendredi","samedi"]
-            $table->json('jours_actifs')->default('["lundi","mardi","mercredi","jeudi","vendredi","samedi"]');
+            $table->json('jours_actifs')->nullable();
 
             // Heure d'ouverture et fermeture
             $table->time('heure_debut')->default('08:00');
@@ -21,13 +21,7 @@ class CreateTourneeParametresTable extends Migration
 
             // Créneaux disponibles — JSON array de objets
             // ex: [{"label":"9h-11h","debut":"09:00","fin":"11:00"},...]
-            $table->json('creneaux')->default('[
-                {"label":"9h-11h","debut":"09:00","fin":"11:00"},
-                {"label":"11h-12h","debut":"11:00","fin":"12:00"},
-                {"label":"13h-14h","debut":"13:00","fin":"14:00"},
-                {"label":"15h-16h","debut":"15:00","fin":"16:00"},
-                {"label":"17h-18h","debut":"17:00","fin":"18:00"}
-            ]');
+            $table->json('creneaux')->nullable();
 
             // Délai minimum avant la tournée (en heures)
             // Ex: 2 = on ne peut pas ajouter une pièce moins de 2h avant le créneau
