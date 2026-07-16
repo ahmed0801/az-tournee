@@ -8,6 +8,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PlanningController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AdminParametresController;
 
 // ── Racine ────────────────────────────────────────────────────
 Route::get('/', function () {
@@ -121,6 +122,25 @@ Route::prefix('admin')->group(function () {
         [AdminController::class, 'cleanupPage'])->name('admin.cleanup');
     Route::post('/cleanup',
         [AdminController::class, 'cleanupOld'])->name('admin.cleanup.old');
+
+    // ── Paramètres tournée ────────────────────────────────────
+    Route::get('/parametres',
+        [AdminParametresController::class, 'index'])->name('admin.parametres.index');
+    Route::get('/parametres/{siteId}',
+        [AdminParametresController::class, 'show'])->name('admin.parametres.show');
+    Route::put('/parametres/{siteId}',
+        [AdminParametresController::class, 'update'])->name('admin.parametres.update');
+    Route::post('/parametres/{siteId}/exceptions',
+        [AdminParametresController::class, 'addException'])->name('admin.parametres.exceptions.add');
+    Route::delete('/parametres/exceptions/{id}',
+        [AdminParametresController::class, 'deleteException'])->name('admin.parametres.exceptions.delete');
+    Route::get('/parametres/exceptions/globales',
+        [AdminParametresController::class, 'exceptionsGlobales'])->name('admin.parametres.exceptions.globales');
+    Route::post('/parametres/exceptions/globales',
+        [AdminParametresController::class, 'addExceptionGlobale'])->name('admin.parametres.exceptions.globales.add');
+
+
+        Route::post('/chauffeur/livre-client', [PlanningController::class, 'livreClient'])->name('chauffeur.livre_client');
 });
 
 // ══════════════════════════════════════════════════════════════

@@ -18,7 +18,7 @@
         </span>
         <div class="d-flex align-items-center gap-2">
             @php
-                $recuperes = $lignes->where('statut', 'recupere')->count();
+                $recuperes = $lignes->whereIn('statut', ['recupere', 'au_magasin', 'livre_client'])->count();
                 $total     = $lignes->count();
             @endphp
             <span class="badge {{ $recuperes === $total ? 'bg-success' : 'bg-secondary' }}">
@@ -73,7 +73,8 @@
             {{-- Statut --}}
             @php
                 $bgColor = '#f3f4f6';
-                if ($ligne->statut === 'recupere')   $bgColor = '#d1fae5';
+                if ($ligne->statut === 'recupere')     $bgColor = '#d1fae5';
+                elseif ($ligne->statut === 'livre_client') $bgColor = '#ede9fe';
                 elseif ($ligne->statut === 'probleme') $bgColor = '#fee2e2';
                 elseif ($ligne->statut === 'en_route') $bgColor = '#dbeafe';
                 elseif ($ligne->statut === 'assigné')  $bgColor = '#e0f2fe';
@@ -85,7 +86,8 @@
                 <option value="assigné"    {{ $ligne->statut === 'assigné'    ? 'selected' : '' }}>👤 Assigné</option>
                 <option value="en_route"   {{ $ligne->statut === 'en_route'   ? 'selected' : '' }}>🚗 En route</option>
                 <option value="recupere"   {{ $ligne->statut === 'recupere'   ? 'selected' : '' }}>✅ Récupéré</option>
-                <option value="au_magasin" {{ $ligne->statut === 'au_magasin' ? 'selected' : '' }}>🏪 Au magasin</option>
+                <option value="au_magasin"   {{ $ligne->statut === 'au_magasin'   ? 'selected' : '' }}>🏪 Au magasin</option>
+                <option value="livre_client" {{ $ligne->statut === 'livre_client' ? 'selected' : '' }}>🚪 Livré client</option>
                 <option value="probleme"   {{ $ligne->statut === 'probleme'   ? 'selected' : '' }}>⚠️ Problème</option>
             </select>
 

@@ -24,7 +24,8 @@
         .ligne-card.assigné    { border-left-color:#0d6efd; }
         .ligne-card.en_route   { border-left-color:#17a2b8; }
         .ligne-card.recupere   { border-left-color:#28a745; }
-        .ligne-card.au_magasin { border-left-color:#343a40; }
+        .ligne-card.au_magasin  { border-left-color:#343a40; }
+        .ligne-card.livre_client { border-left-color:#6f42c1; }
         .ligne-card.probleme   { border-left-color:#dc3545; }
         .ligne-body { padding:14px 18px; }
         .article-code { font-family:'Courier New',monospace; font-weight:900; font-size:1.05rem; color:#0040c0; background:#eef4ff; padding:2px 8px; border-radius:4px; }
@@ -80,12 +81,13 @@
         <div class="row g-3 mb-3">
             <div class="col-6 col-md-3"><div class="stat-card"><h3 class="text-secondary">{{ $stats['total'] }}</h3><p>Total</p></div></div>
             <div class="col-6 col-md-3"><div class="stat-card"><h3 class="text-success">{{ $stats['recupere'] }}</h3><p>Récupérées</p></div></div>
+            <div class="col-6 col-md-3"><div class="stat-card"><h3 style="color:#6f42c1;">{{ $stats['livre_client'] ?? 0 }}</h3><p>🚪 Livré client</p></div></div>
             <div class="col-6 col-md-3"><div class="stat-card"><h3 class="text-info">{{ $stats['en_cours'] }}</h3><p>En cours</p></div></div>
             <div class="col-6 col-md-3"><div class="stat-card"><h3 class="{{ $stats['probleme'] > 0 ? 'text-danger' : 'text-secondary' }}">{{ $stats['probleme'] }}</h3><p>Problèmes</p></div></div>
         </div>
 
         {{-- Progression --}}
-        @php $pct = $stats['total'] > 0 ? round(($stats['recupere'] / $stats['total']) * 100) : 0; @endphp
+        @php $livres = ($stats['recupere'] ?? 0) + ($stats['livre_client'] ?? 0); $pct = $stats['total'] > 0 ? round(($livres / $stats['total']) * 100) : 0; @endphp
         <div class="progress-section">
             <div class="d-flex justify-content-between mb-2" style="font-size:0.82rem;">
                 <span class="fw-bold">Progression</span>
@@ -97,24 +99,39 @@
         </div>
 
         {{-- Matin --}}
-        @php $matin = $lignes->where('slot', 'matin'); @endphp
-        @if($matin->count() > 0)
-            <div class="slot-title">🌅 Matin — 8h à 12h <small style="font-weight:400;">({{ $matin->count() }} pièce(s))</small></div>
-            @foreach($matin as $ligne)
-                @include('planning.partials.suivi-ligne', ['ligne' => $ligne])
-            @endforeach
+        @php
+            $allCreneaux = [
+                '9h-11h'     => ['icon' => '🌅', 'label' => '9h – 11h'],
+                '11h-12h'    => ['icon' => '🕚', 'label' => '11h – 12h'],
+                '13h-14h'    => ['icon' => '🌞', 'label' => '13h – 14h'],
+                '15h-16h'    => ['icon' => '🕒', 'label' => '15h – 16h'],
+                '17h-18h'    => ['icon' => '🌇', 'label' => '17h – 18h'],
+                'matin'      => ['icon' => '🌅', 'label' => 'Matin (8h-12h)'],
+                'apres_midi' => ['icon' => '🌇', 'label' => 'Après-midi (13h-18h)'],
+            ];
+            // Exclure anciens slots si nouveaux présents
+            $hasNewSlots = $lignes->whereIn('slot', ['9h-11h','11h-12h','13h-14h','15h-16h','17h-18h'])->count() > 0;
+            if ($hasNewSlots) {
+                unset($allCreneaux['matin'], $allCreneaux['apres_midi']);
+            }
+        @endphp
+
+        @php $first = true; @endphp
+        @foreach($allCreneaux as $slotKey => $slotInfo)
+            @php $lignesCreneau = $lignes->where('slot', $slotKey); @endphp
+            @if($lignesCreneau->count() > 0)
+                <div class="slot-title" style="{{ $first ? '' : 'margin-top:24px;' }}">
+                    {{ $slotInfo['icon'] }} {{ $slotInfo['label'] }}
+                    <small style="font-weight:400;">({{ $lignesCreneau->count() }} pièce(s))</small>
+                </div>
+                @foreach($lignesCreneau as $ligne)
+                    @include('planning.partials.suivi-ligne', ['ligne' => $ligne])
+                @endforeach
+                @php $first = false; @endphp
+            @endif
+        @endforeach
         @endif
 
-        {{-- Après-midi --}}
-        @php $apresMidi = $lignes->where('slot', 'apres_midi'); @endphp
-        @if($apresMidi->count() > 0)
-            <div class="slot-title" style="margin-top:24px;">🌇 Après-midi — 13h à 18h <small style="font-weight:400;">({{ $apresMidi->count() }} pièce(s))</small></div>
-            @foreach($apresMidi as $ligne)
-                @include('planning.partials.suivi-ligne', ['ligne' => $ligne])
-            @endforeach
-        @endif
-
-    @endif
 
     <div class="text-center mt-4 mb-5" style="font-size:0.75rem; color:#9bacc4;">
         <i class="fas fa-lock me-1"></i> Page lecture seule — {{ now()->format('H:i:s') }}

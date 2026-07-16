@@ -97,31 +97,40 @@
     </div>
 
     {{-- ── MATIN ───────────────────────────────────────────────── --}}
-    <div class="slot-header">
-        <i class="fas fa-sun me-2"></i> Tournée Matin — 8h à 12h
-        <span class="badge bg-white text-dark ms-2">{{ $lignesMatin->flatten()->count() }} pièce(s)</span>
-    </div>
+    @php
+        $allCreneaux = [
+            '9h-11h'  => ['icon' => '🌅', 'label' => '9h – 11h',  'color' => 'slot-header'],
+            '11h-12h' => ['icon' => '🕚', 'label' => '11h – 12h', 'color' => 'slot-header'],
+            '13h-14h' => ['icon' => '🌞', 'label' => '13h – 14h', 'color' => 'slot-header apm'],
+            '15h-16h' => ['icon' => '🕒', 'label' => '15h – 16h', 'color' => 'slot-header apm'],
+            '17h-18h' => ['icon' => '🌇', 'label' => '17h – 18h', 'color' => 'slot-header apm'],
+            // Compatibilité anciens slots
+            'matin'      => ['icon' => '🌅', 'label' => 'Matin (8h-12h)',      'color' => 'slot-header'],
+            'apres_midi' => ['icon' => '🌇', 'label' => 'Après-midi (13h-18h)', 'color' => 'slot-header apm'],
+        ];
+    @endphp
 
-    @if($lignesMatin->isEmpty())
-        <div class="empty-slot">📭 Aucune pièce planifiée ce matin</div>
-    @else
-        @foreach($lignesMatin as $fournisseurName => $lignes)
-            @include('planning.partials.fourn-group-dispatcher', ['fournisseurName' => $fournisseurName, 'lignes' => $lignes, 'chauffeurs' => $chauffeurs])
+    @foreach($allCreneaux as $slotKey => $slotInfo)
+        @php
+            $lignesCreneau = $lignesParCreneau[$slotKey] ?? collect();
+        @endphp
+        @if($lignesCreneau->isNotEmpty())
+        <div class="{{ $slotInfo['color'] }}" style="{{ !$loop->first ? 'margin-top:24px;' : '' }}">
+            {{ $slotInfo['icon'] }} Tournée {{ $slotInfo['label'] }}
+            <span class="badge bg-white text-dark ms-2">{{ $lignesCreneau->flatten()->count() }} pièce(s)</span>
+        </div>
+        @foreach($lignesCreneau as $fournisseurName => $lignes)
+            @include('planning.partials.fourn-group-dispatcher', [
+                'fournisseurName' => $fournisseurName,
+                'lignes'          => $lignes,
+                'chauffeurs'      => $chauffeurs
+            ])
         @endforeach
-    @endif
+        @endif
+    @endforeach
 
-    {{-- ── APRÈS-MIDI ──────────────────────────────────────────── --}}
-    <div class="slot-header apm" style="margin-top:24px;">
-        <i class="fas fa-cloud-sun me-2"></i> Tournée Après-midi — 13h à 18h
-        <span class="badge bg-white text-dark ms-2">{{ $lignesApresMidi->flatten()->count() }} pièce(s)</span>
-    </div>
-
-    @if($lignesApresMidi->isEmpty())
-        <div class="empty-slot">📭 Aucune pièce planifiée cet après-midi</div>
-    @else
-        @foreach($lignesApresMidi as $fournisseurName => $lignes)
-            @include('planning.partials.fourn-group-dispatcher', ['fournisseurName' => $fournisseurName, 'lignes' => $lignes, 'chauffeurs' => $chauffeurs])
-        @endforeach
+    @if($lignesParCreneau->isEmpty() || $lignesParCreneau->flatten()->isEmpty())
+        <div class="empty-slot">📭 Aucune pièce planifiée pour cette date</div>
     @endif
 
 </div>

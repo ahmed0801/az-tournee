@@ -11,6 +11,8 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        \$this->call([TourneeParametresSeeder::class]);
+
         // ── 4 Sites ───────────────────────────────────────────────
         $sites = [
             ['name' => 'Conflans',  'slug' => 'conflans',  'url' => 'https://conflans.destockpa.fr',  'api_key' => 'conflans_key_2025',  'city' => 'Conflans-Sainte-Honorine'],

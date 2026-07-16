@@ -23,6 +23,16 @@ class Site extends Model
         return $this->hasMany(TourneeLine::class);
     }
 
+    public function parametre()
+    {
+        return $this->hasOne(TourneeParametre::class);
+    }
+
+    public function exceptions()
+    {
+        return $this->hasMany(TourneeException::class);
+    }
+
     public function fournisseurs()
     {
         return $this->hasMany(Fournisseur::class);

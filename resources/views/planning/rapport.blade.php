@@ -71,11 +71,12 @@
 
     {{-- ── STATS GLOBALES ──────────────────────────────────────── --}}
     @php
-        $total     = $lines->count();
-        $recupere  = $lines->where('statut', 'recupere')->count();
-        $probleme  = $lines->where('statut', 'probleme')->count();
-        $enAttente = $lines->whereIn('statut', ['en_attente', 'assigné', 'en_route'])->count();
-        $tauxRecup = $total > 0 ? round(($recupere / $total) * 100) : 0;
+        $recupere     = $lines->where('statut', 'recupere')->count();
+$livreClient  = $lines->where('statut', 'livre_client')->count();
+$probleme     = $lines->where('statut', 'probleme')->count();
+$enAttente    = $lines->whereIn('statut', ['en_attente', 'assigné', 'en_route'])->count();
+    $total        = $lines->count();
+$tauxRecup    = $total > 0 ? round((($recupere + $livreClient) / $total) * 100) : 0;
     @endphp
 
     <div class="row g-3 mb-2">
@@ -242,7 +243,18 @@
                 <tr class="{{ $ligne->statut === 'probleme' ? 'table-danger' : ($ligne->statut === 'recupere' ? 'table-success bg-opacity-10' : '') }}">
                     <td style="white-space:nowrap;">{{ $ligne->date_tournee->format('d/m/Y') }}</td>
                     <td style="white-space:nowrap;">
-                        {{ $ligne->slot === 'matin' ? '🌅 Matin' : '🌇 AM' }}
+                        @php
+                            $slotLabels = [
+                                '9h-11h'     => '🌅 9h-11h',
+                                '11h-12h'    => '🕚 11h-12h',
+                                '13h-14h'    => '🌞 13h-14h',
+                                '15h-16h'    => '🕒 15h-16h',
+                                '17h-18h'    => '🌇 17h-18h',
+                                'matin'      => '🌅 Matin',
+                                'apres_midi' => '🌇 AM',
+                            ];
+                        @endphp
+                        {{ $slotLabels[$ligne->slot] ?? $ligne->slot }}
                     </td>
                     <td>
                         <span class="badge bg-primary" style="font-size:0.68rem;">
@@ -262,6 +274,7 @@
                                 'en_route'   => 'info',
                                 'recupere'   => 'success',
                                 'au_magasin' => 'dark',
+                                'livre_client'=> 'secondary',
                                 'probleme'   => 'danger',
                             ];
                             $labels = [
@@ -270,10 +283,12 @@
                                 'en_route'   => '🚗 En route',
                                 'recupere'   => '✅ Récupéré',
                                 'au_magasin' => '🏪 Au magasin',
+                                'livre_client'=> '🚪 Livré client',
                                 'probleme'   => '⚠️ Problème',
                             ];
                         @endphp
-                        <span class="badge bg-{{ $colors[$ligne->statut] ?? 'secondary' }} badge-statut">
+                        <span class="badge bg-{{ $colors[$ligne->statut] ?? 'secondary' }} badge-statut"
+      style="{{ $ligne->statut === 'livre_client' ? 'background:#6f42c1!important;color:white;' : '' }}">
                             {{ $labels[$ligne->statut] ?? $ligne->statut }}
                         </span>
                         @if($ligne->probleme_notes)

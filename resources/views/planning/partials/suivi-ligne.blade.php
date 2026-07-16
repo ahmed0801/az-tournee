@@ -6,6 +6,7 @@
         'en_route'   => 'car',
         'recupere'   => 'check-circle',
         'au_magasin' => 'store',
+        'livre_client'=> 'door-open',
         'probleme'   => 'exclamation-triangle',
     ];
     $labels = [
@@ -14,6 +15,7 @@
         'en_route'   => 'En route',
         'recupere'   => 'Récupéré',
         'au_magasin' => 'Au magasin',
+        'livre_client'=> 'Livré au client',
         'probleme'   => 'Problème',
     ];
     $icon = $icons[$ligne->statut] ?? 'circle';

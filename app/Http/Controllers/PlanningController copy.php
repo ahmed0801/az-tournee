@@ -137,48 +137,46 @@ class PlanningController extends Controller
 
     // ── GET /chauffeur/planning ────────────────────────────────
     public function chauffeurPlanning()
-{
-    $chauffeurId = session('chauffeur_id');
-    if (!$chauffeurId) return redirect()->route('chauffeur.login');
+    {
+        $chauffeurId = session('chauffeur_id');
+        if (!$chauffeurId) return redirect()->route('chauffeur.login');
 
-    $chauffeur = Chauffeur::findOrFail($chauffeurId);
+        $chauffeur = Chauffeur::findOrFail($chauffeurId);
 
-    // Une seule requête principale
-    $toutesLignes = TourneeLine::with(['site', 'fournisseur'])
-        ->whereDate('date_tournee', today())
-        ->where('chauffeur_id', $chauffeurId)
-        ->orderBy('slot')
-        ->orderBy('fournisseur_name')
-        ->orderBy('article_code')
-        ->get();
+        $allSlots = ['9h-11h', '11h-12h', '13h-14h', '15h-16h', '17h-18h', 'matin', 'apres_midi'];
+        $lignesParCreneau = collect();
 
-    // Grouper par créneau puis par fournisseur
-    $lignesParCreneau = $toutesLignes->groupBy('slot')
-        ->map(fn($group) => $group->groupBy('fournisseur_name'));
+        foreach ($allSlots as $slot) {
+            $lignes = TourneeLine::with(['site', 'fournisseur'])
+    ->whereDate('date_tournee', today())
+    ->where('slot', $slot)
+    ->where('chauffeur_id', $chauffeurId)
+    ->whereNotIn('statut', ['au_magasin', 'livre_client'])
+    ->orderBy('fournisseur_name')
+    ->get()
+    ->groupBy('fournisseur_name');
+            if ($lignes->isNotEmpty()) {
+                $lignesParCreneau[$slot] = $lignes;
+            }
+        }
 
-    // Stats
-    $stats = [
-        'total'    => $toutesLignes->count(),
-        'recupere' => $toutesLignes->whereIn('statut', ['recupere', 'livre_client'])->count(),
-        'restant'  => $toutesLignes->whereNotIn('statut', ['recupere', 'au_magasin', 'livre_client'])->count(),
-    ];
+        // Compatibilité ancienne vue
+        $matin     = $lignesParCreneau->only(['matin', '9h-11h', '11h-12h'])->collapse();
+        $apresMidi = $lignesParCreneau->only(['apres_midi', '13h-14h', '15h-16h', '17h-18h'])->collapse();
 
-    // Pièces non assignées (pour la section "à prendre")
-    $nonAssignees = TourneeLine::with(['site', 'fournisseur'])
-        ->whereDate('date_tournee', today())
-        ->whereNull('chauffeur_id')
-        ->whereNotIn('statut', ['recupere', 'au_magasin', 'livre_client'])
-        ->orderBy('fournisseur_name')
-        ->orderBy('article_code')
-        ->get();
+        $stats = [
+            'total'    => TourneeLine::whereDate('date_tournee', today())
+                            ->where('chauffeur_id', $chauffeurId)->count(),
+            'recupere' => TourneeLine::whereDate('date_tournee', today())
+                            ->where('chauffeur_id', $chauffeurId)
+                            ->where('statut', 'recupere')->count(),
+            'restant'  => TourneeLine::whereDate('date_tournee', today())
+                            ->where('chauffeur_id', $chauffeurId)
+                            ->whereNotIn('statut', ['recupere', 'au_magasin'])->count(),
+        ];
 
-    return view('chauffeur.planning', compact(
-        'chauffeur', 
-        'lignesParCreneau', 
-        'nonAssignees', 
-        'stats'
-    ));
-}
+        return view('chauffeur.planning', compact('chauffeur', 'matin', 'apresMidi', 'lignesParCreneau', 'stats'));
+    }
 
     // ── POST /chauffeur/scan ───────────────────────────────────
     public function scan(Request $request)
@@ -320,34 +318,24 @@ class PlanningController extends Controller
 
 
     // ── POST /chauffeur/livre-client ──────────────────────────────
-// ── POST /chauffeur/livre-client ──────────────────────────────
 public function livreClient(Request $request)
 {
     try {
         $chauffeurId = session('chauffeur_id') ?? $request->input('chauffeur_id');
-        if (!$chauffeurId) {
-            return response()->json(['error' => 'Non connecté'], 401);
-        }
+        if (!$chauffeurId) return response()->json(['error' => 'Non connecte'], 401);
 
         $line = TourneeLine::find($request->input('line_id'));
-        if (!$line) {
-            return response()->json(['error' => 'Ligne introuvable'], 404);
-        }
+        if (!$line) return response()->json(['error' => 'Ligne introuvable'], 404);
 
-        $line->update([
-            'statut'       => 'livre_client',
-            'scanned_at'   => now(),
-            'scanned_barcode' => $line->scanned_barcode ?? 'LIVRE_CLIENT',
-        ]);
+        $line->update(['statut' => 'livre_client', 'scanned_at' => now()]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Pièce marquée comme livrée directement au client',
+            'message' => 'Piece livree directement au client',
             'statut'  => 'livre_client',
         ]);
 
     } catch (\Exception $e) {
-        \Log::error('livreClient error: ' . $e->getMessage());
         return response()->json(['error' => $e->getMessage()], 500);
     }
 }
