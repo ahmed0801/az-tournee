@@ -63,6 +63,7 @@ class AdminController extends Controller
             'email'     => $request->email,
             'password'  => Hash::make($request->password),
             'is_active' => true,
+            'site_id'   => $request->site_id ?: null,
         ]);
 
         return redirect()->route('admin.chauffeurs')
@@ -84,6 +85,7 @@ class AdminController extends Controller
             'phone'     => $request->phone,
             'email'     => $request->email,
             'is_active' => $request->has('is_active') ? 1 : 0,
+            'site_id'   => $request->site_id ?: null,
         ];
 
         if ($request->filled('password')) {

@@ -17,6 +17,7 @@ class VerifyCsrfToken extends Middleware
         'chauffeur/scan/confirm',
         'chauffeur/probleme',
         'chauffeur/self-assign',
+         'chauffeur/switch-site',
         'chauffeur/logout',
  
         // Routes API (protégées par X-API-KEY)

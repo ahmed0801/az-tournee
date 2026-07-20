@@ -347,6 +347,8 @@
         </h5>
 
         <div class="d-flex align-items-center gap-2">
+
+        
             <!-- Bouton Actualiser - Version plus petite -->
             <button onclick="window.location.reload()" 
                     class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
@@ -354,6 +356,40 @@
                 <i class="fas fa-sync-alt"></i>
                 <span>Actualiser</span>
             </button>
+
+            {{-- Bouton bascule site (si chauffeur a accès multi-sites ou site_id null) --}}
+            @if(!$chauffeur->site_id || $sites->count() > 1)
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-warning dropdown-toggle"
+                        data-bs-toggle="dropdown"
+                        style="font-size:0.8rem; padding:5px 10px;">
+                    <i class="fas fa-store me-1"></i>
+                    {{ $currentSiteId ? optional($sites->find($currentSiteId))->name : 'Tous' }}
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                        <form method="POST" action="{{ route('chauffeur.switch_site') }}">
+                            @csrf
+                            <input type="hidden" name="site_id" value="">
+                            <button class="dropdown-item {{ !$currentSiteId ? 'active' : '' }}">
+                                🌐 Tous les sites
+                            </button>
+                        </form>
+                    </li>
+                    @foreach($sites as $site)
+                    <li>
+                        <form method="POST" action="{{ route('chauffeur.switch_site') }}">
+                            @csrf
+                            <input type="hidden" name="site_id" value="{{ $site->id }}">
+                            <button class="dropdown-item {{ $currentSiteId == $site->id ? 'active' : '' }}">
+                                🏪 {{ $site->name }}
+                            </button>
+                        </form>
+                    </li>
+                    @endforeach
+                </ul>
+            </div>
+            @endif
 
             <!-- Bouton Déconnexion -->
             <form action="{{ route('chauffeur.logout') }}" method="POST" class="mb-0">
@@ -412,6 +448,11 @@
                     <div class="article-meta">
                         <span class="meta-badge meta-doc">📄 {{ $ligne->source_numdoc }}</span>
                         <span class="meta-badge meta-qty">×{{ number_format($ligne->quantity, 0) }}</span>
+                        @if($ligne->created_by_name)
+    <span class="meta-badge meta-vendeur">
+        👤 {{ $ligne->created_by_name }}
+    </span>
+@endif
                         {{-- Créneau demandé --}}
                         @php
                             $slotIcons = [
@@ -442,7 +483,7 @@
                             🏪 {{ optional($ligne->site)->name ?? 'N/A' }}
                         </span>
                         @if($ligne->notes)
-                            <span class="meta-badge meta-note">📝 {{ Str::limit($ligne->notes, 25) }}</span>
+                            <span class="meta-badge meta-note">📝 {{ Str::limit($ligne->notes, 50) }}</span>
                         @endif
                     </div>
                 </div>
@@ -483,35 +524,22 @@ if (!$hasNewSlots) {
 }
 @endphp
 
+{{-- TOURNÉE DU CHAUFFEUR --}}
 @php $hasLines = false; @endphp
 
-@foreach($allCreneaux as $slotKey => $slotInfo)
-    @php
-        $lignesCreneau = isset($lignesParCreneau) ? ($lignesParCreneau[$slotKey] ?? collect()) : collect();
-        // Compatibilité ancien système
-        if ($lignesCreneau->isEmpty()) {
-            if ($slotKey === 'matin' || in_array($slotKey, ['9h-11h','11h-12h'])) {
-                $lignesCreneau = $matin ?? collect();
-            } elseif ($slotKey === 'apres_midi' || in_array($slotKey, ['13h-14h','15h-16h','17h-18h'])) {
-                $lignesCreneau = $apresMidi ?? collect();
-            }
-        }
-    @endphp
-
-    @if($lignesCreneau->isNotEmpty())
+@foreach($lignesParCreneau as $slotKey => $lignesParFourn)
+    @if($lignesParFourn->isNotEmpty())
         @php $hasLines = true; @endphp
-        <div class="slot-header {{ $slotInfo['apm'] ? 'apm' : '' }}" style="{{ !$loop->first ? 'margin-top:14px;' : '' }}">
-            {{ $slotInfo['icon'] }} {{ $slotInfo['label'] }}
-            <span style="font-size:0.68rem; font-weight:400; margin-left:8px; opacity:0.8;">
-                {{ $lignesCreneau->flatten()->count() }} pièce(s)
-            </span>
+        <div class="slot-header {{ str_contains($slotKey, '13h') || str_contains($slotKey, '15h') || str_contains($slotKey, '17h') || $slotKey === 'apres_midi' ? 'apm' : '' }}">
+            🌅 {{ ucfirst(str_replace('_', ' ', $slotKey)) }}
+            <span style="font-size:0.68rem; opacity:0.8;">({{ $lignesParFourn->flatten()->count() }} pièces)</span>
         </div>
-        @foreach($lignesCreneau as $fournisseurName => $lignes)
-            @php $gid = $slotKey . '-' . $loop->index; @endphp
+
+        @foreach($lignesParFourn as $fournisseurName => $lignes)
             @include('chauffeur.partials.fourn-group', [
                 'fournisseurName' => $fournisseurName,
-                'lignes'          => $lignes,
-                'groupId'         => $gid,
+                'lignes' => $lignes,
+                'groupId' => $slotKey . '-' . Str::slug($fournisseurName)
             ])
         @endforeach
     @endif
@@ -706,7 +734,11 @@ function markRecuperee(lineId) {
     if (dot) { dot.className = 'status-dot recupere'; }
     const btns = card.querySelector('.action-btns');
     if (btns) {
-        btns.innerHTML = '<div class="result-recupere"><i class="fas fa-check-circle"></i> Récupérée</div>';
+        btns.innerHTML = '<div class="result-recupere"><i class="fas fa-check-circle"></i> Récupérée</div>' +
+            '<button id="btn-livre-' + lineId + '" onclick="livreClient(' + lineId + ')" ' +
+            'style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:white;' +
+            'border:1px solid #a78bfa;border-radius:6px;padding:4px 10px;' +
+            'font-size:0.72rem;font-weight:700;cursor:pointer;margin-top:4px;">&#128682; Confirmer la Livraison au client</button>';
     }
     const zone = document.getElementById('scan-zone-' + lineId);
     if (zone) zone.classList.remove('active');
@@ -879,6 +911,51 @@ document.addEventListener('keydown', function (e) {
         document.getElementById('globalScanInput').value = e.key;
     }
 });
+
+// ── Livraison directe client ──────────────────────────────────
+function livreClient(lineId) {
+    if (!confirm('Confirmer que cette pièce a été livrée directement au client ?')) return;
+
+    const btn = document.getElementById('btn-livre-' + lineId);
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    }
+
+    fetch('{{ route("chauffeur.livre_client") }}', {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json', 
+            'X-CSRF-TOKEN': CSRF 
+        },
+        body: JSON.stringify({ 
+            line_id: lineId, 
+            chauffeur_id: CHAUFFEUR_ID 
+        })
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            const card = document.getElementById('article-card-' + lineId);
+            if (card) {
+                card.classList.add('recupere');
+                card.innerHTML = `
+                    <div class="result-recupere">
+                        <i class="fas fa-check-circle"></i>
+                        <strong>Livré directement au client</strong>
+                    </div>
+                `;
+                updateGroupCounter(card);
+            }
+        } else {
+            alert(d.error || 'Erreur lors de la mise à jour');
+        }
+    })
+    .catch(() => alert('Erreur réseau'))
+    .finally(() => {
+        if (btn) btn.disabled = false;
+    });
+}
 </script>
 </body>
 </html>

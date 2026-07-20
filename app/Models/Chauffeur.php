@@ -10,7 +10,7 @@ class Chauffeur extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name', 'phone', 'email', 'password', 'is_active',
+        'name', 'phone', 'email', 'password', 'is_active', 'site_id',
     ];
 
     protected $hidden = ['password'];
@@ -37,5 +37,10 @@ class Chauffeur extends Model
     public function lignesApresMidi()
     {
         return $this->lignesAujourdhui()->where('slot', 'apres_midi');
+    }
+
+       public function site()
+    {
+        return $this->belongsTo(Site::class);
     }
 }

@@ -89,6 +89,21 @@
                             <label class="form-label fw-bold">Email</label>
                             <input type="email" name="email" class="form-control" value="{{ $chauffeur->email }}">
                         </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-store me-1 text-primary"></i>
+                                Société par défaut
+                                <small class="text-muted">(vide = accès à tous les sites)</small>
+                            </label>
+                            <select name="site_id" class="form-control">
+                                <option value="">-- Tous les sites --</option>
+                                @foreach(App\Models\Site::where('is_active', true)->orderBy('name')->get() as $site)
+                                    <option value="{{ $site->id }}" {{ $chauffeur->site_id == $site->id ? 'selected' : '' }}>
+                                        {{ $site->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" name="is_active" id="active{{ $chauffeur->id }}"
                                    {{ $chauffeur->is_active ? 'checked' : '' }}>
@@ -171,6 +186,19 @@
                     <div class="mb-3">
                         <label class="form-label fw-bold">Email</label>
                         <input type="email" name="email" class="form-control" placeholder="email@exemple.com">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-store me-1 text-primary"></i>
+                            Société par défaut
+                            <small class="text-muted">(vide = accès à tous les sites)</small>
+                        </label>
+                        <select name="site_id" class="form-control">
+                            <option value="">-- Tous les sites --</option>
+                            @foreach(App\Models\Site::where('is_active', true)->orderBy('name')->get() as $site)
+                                <option value="{{ $site->id }}">{{ $site->name }}</option>
+                            @endforeach
+                        </select>
                     </div>
                     <hr>
                     <p class="fw-bold mb-2"><i class="fas fa-lock me-1"></i>Accès interface mobile</p>

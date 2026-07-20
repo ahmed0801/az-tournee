@@ -69,6 +69,8 @@ Route::post('/chauffeur/scan',         [PlanningController::class, 'scan'])->nam
 Route::post('/chauffeur/scan/confirm', [PlanningController::class, 'scanConfirm'])->name('chauffeur.scan.confirm');
 Route::post('/chauffeur/probleme',     [PlanningController::class, 'signalProbleme'])->name('chauffeur.probleme');
 Route::post('/chauffeur/self-assign',  [PlanningController::class, 'selfAssign'])->name('chauffeur.self_assign');
+Route::post('/chauffeur/switch-site',  [PlanningController::class, 'switchSite'])->name('chauffeur.switch_site');
+
 // ── Vue lecture seule vendeur ─────────────────────────────────
 Route::get('/suivi/{numdoc}', [PlanningController::class, 'suivi'])->name('planning.suivi');
 

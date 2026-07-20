@@ -143,14 +143,28 @@ class PlanningController extends Controller
 
     $chauffeur = Chauffeur::findOrFail($chauffeurId);
 
+    // Filtre site : site du chauffeur par défaut, ou site sélectionné en session, ou tous
+    $chauffeurSiteId = $chauffeur->site_id; // site par défaut du chauffeur
+    $sessionSiteId   = session('chauffeur_site_filter'); // bascule manuelle
+    $filteredSiteId  = $sessionSiteId ?? $chauffeurSiteId; // priorité à la session
+
     // Une seule requête principale
-    $toutesLignes = TourneeLine::with(['site', 'fournisseur'])
+    $query = TourneeLine::with(['site', 'fournisseur'])
         ->whereDate('date_tournee', today())
         ->where('chauffeur_id', $chauffeurId)
         ->orderBy('slot')
         ->orderBy('fournisseur_name')
-        ->orderBy('article_code')
-        ->get();
+        ->orderBy('article_code');
+
+    if ($filteredSiteId) {
+        $query->where('site_id', $filteredSiteId);
+    }
+
+    $toutesLignes = $query->get();
+
+    // Sites disponibles pour le chauffeur (pour le bouton bascule)
+    $sites = \App\Models\Site::where('is_active', true)->orderBy('name')->get();
+    $currentSiteId = $filteredSiteId;
 
     // Grouper par créneau puis par fournisseur
     $lignesParCreneau = $toutesLignes->groupBy('slot')
@@ -176,7 +190,10 @@ class PlanningController extends Controller
         'chauffeur', 
         'lignesParCreneau', 
         'nonAssignees', 
-        'stats'
+        'nonAssignees', 
+        'stats',
+        'sites',
+        'currentSiteId'
     ));
 }
 
@@ -470,4 +487,16 @@ public function livreClient(Request $request)
             'statsBySite', 'dateFrom', 'dateTo'
         ));
     }
+
+    public function switchSite(Request $request)
+    {
+        $siteId = $request->input('site_id');
+        if ($siteId) {
+            session(['chauffeur_site_filter' => $siteId]);
+        } else {
+            session()->forget('chauffeur_site_filter');
+        }
+        return redirect()->route('chauffeur.planning');
+    }
 }
+

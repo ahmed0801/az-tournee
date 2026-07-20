@@ -357,6 +357,40 @@
                 <span>Actualiser</span>
             </button>
 
+            {{-- Bouton bascule site (si chauffeur a accès multi-sites ou site_id null) --}}
+            @if(!$chauffeur->site_id || $sites->count() > 1)
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-warning dropdown-toggle"
+                        data-bs-toggle="dropdown"
+                        style="font-size:0.8rem; padding:5px 10px;">
+                    <i class="fas fa-store me-1"></i>
+                    {{ $currentSiteId ? optional($sites->find($currentSiteId))->name : 'Tous' }}
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                        <form method="POST" action="{{ route('chauffeur.switch_site') }}">
+                            @csrf
+                            <input type="hidden" name="site_id" value="">
+                            <button class="dropdown-item {{ !$currentSiteId ? 'active' : '' }}">
+                                🌐 Tous les sites
+                            </button>
+                        </form>
+                    </li>
+                    @foreach($sites as $site)
+                    <li>
+                        <form method="POST" action="{{ route('chauffeur.switch_site') }}">
+                            @csrf
+                            <input type="hidden" name="site_id" value="{{ $site->id }}">
+                            <button class="dropdown-item {{ $currentSiteId == $site->id ? 'active' : '' }}">
+                                🏪 {{ $site->name }}
+                            </button>
+                        </form>
+                    </li>
+                    @endforeach
+                </ul>
+            </div>
+            @endif
+
             <!-- Bouton Déconnexion -->
             <form action="{{ route('chauffeur.logout') }}" method="POST" class="mb-0">
                 @csrf
@@ -381,7 +415,8 @@
     $nonAssignees = \App\Models\TourneeLine::with(['site', 'fournisseur'])
         ->whereDate('date_tournee', today())
         ->whereNull('chauffeur_id')
-        ->whereNotIn('statut', ['recupere', 'au_magasin'])
+        ->whereNotIn('statut', ['recupere', 'au_magasin', 'livre_client'])
+        ->when($currentSiteId ?? null, fn($q) => $q->where('site_id', $currentSiteId))
         ->orderBy('fournisseur_name')
         ->get();
 @endphp
