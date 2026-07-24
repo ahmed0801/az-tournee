@@ -137,46 +137,65 @@ class PlanningController extends Controller
 
     // ── GET /chauffeur/planning ────────────────────────────────
     public function chauffeurPlanning()
-    {
-        $chauffeurId = session('chauffeur_id');
-        if (!$chauffeurId) return redirect()->route('chauffeur.login');
+{
+    $chauffeurId = session('chauffeur_id');
+    if (!$chauffeurId) return redirect()->route('chauffeur.login');
 
-        $chauffeur = Chauffeur::findOrFail($chauffeurId);
+    $chauffeur = Chauffeur::findOrFail($chauffeurId);
 
-        $allSlots = ['9h-11h', '11h-12h', '13h-14h', '15h-16h', '17h-18h', 'matin', 'apres_midi'];
-        $lignesParCreneau = collect();
+    // Filtre site : site du chauffeur par défaut, ou site sélectionné en session, ou tous
+    $chauffeurSiteId = $chauffeur->site_id; // site par défaut du chauffeur
+    $sessionSiteId   = session('chauffeur_site_filter'); // bascule manuelle
+    $filteredSiteId  = $sessionSiteId ?? $chauffeurSiteId; // priorité à la session
 
-        foreach ($allSlots as $slot) {
-            $lignes = TourneeLine::with(['site', 'fournisseur'])
-    ->whereDate('date_tournee', today())
-    ->where('slot', $slot)
-    ->where('chauffeur_id', $chauffeurId)
-    ->whereNotIn('statut', ['au_magasin', 'livre_client'])
-    ->orderBy('fournisseur_name')
-    ->get()
-    ->groupBy('fournisseur_name');
-            if ($lignes->isNotEmpty()) {
-                $lignesParCreneau[$slot] = $lignes;
-            }
-        }
+    // Une seule requête principale
+    $query = TourneeLine::with(['site', 'fournisseur'])
+        ->whereDate('date_tournee', today())
+        ->where('chauffeur_id', $chauffeurId)
+        ->orderBy('slot')
+        ->orderBy('fournisseur_name')
+        ->orderBy('article_code');
 
-        // Compatibilité ancienne vue
-        $matin     = $lignesParCreneau->only(['matin', '9h-11h', '11h-12h'])->collapse();
-        $apresMidi = $lignesParCreneau->only(['apres_midi', '13h-14h', '15h-16h', '17h-18h'])->collapse();
-
-        $stats = [
-            'total'    => TourneeLine::whereDate('date_tournee', today())
-                            ->where('chauffeur_id', $chauffeurId)->count(),
-            'recupere' => TourneeLine::whereDate('date_tournee', today())
-                            ->where('chauffeur_id', $chauffeurId)
-                            ->where('statut', 'recupere')->count(),
-            'restant'  => TourneeLine::whereDate('date_tournee', today())
-                            ->where('chauffeur_id', $chauffeurId)
-                            ->whereNotIn('statut', ['recupere', 'au_magasin'])->count(),
-        ];
-
-        return view('chauffeur.planning', compact('chauffeur', 'matin', 'apresMidi', 'lignesParCreneau', 'stats'));
+    if ($filteredSiteId) {
+        $query->where('site_id', $filteredSiteId);
     }
+
+    $toutesLignes = $query->get();
+
+    // Sites disponibles pour le chauffeur (pour le bouton bascule)
+    $sites = \App\Models\Site::where('is_active', true)->orderBy('name')->get();
+    $currentSiteId = $filteredSiteId;
+
+    // Grouper par créneau puis par fournisseur
+    $lignesParCreneau = $toutesLignes->groupBy('slot')
+        ->map(fn($group) => $group->groupBy('fournisseur_name'));
+
+    // Stats
+    $stats = [
+        'total'    => $toutesLignes->count(),
+        'recupere' => $toutesLignes->whereIn('statut', ['recupere', 'livre_client'])->count(),
+        'restant'  => $toutesLignes->whereNotIn('statut', ['recupere', 'au_magasin', 'livre_client'])->count(),
+    ];
+
+    // Pièces non assignées (pour la section "à prendre")
+    $nonAssignees = TourneeLine::with(['site', 'fournisseur'])
+        ->whereDate('date_tournee', today())
+        ->whereNull('chauffeur_id')
+        ->whereNotIn('statut', ['recupere', 'au_magasin', 'livre_client'])
+        ->orderBy('fournisseur_name')
+        ->orderBy('article_code')
+        ->get();
+
+    return view('chauffeur.planning', compact(
+        'chauffeur', 
+        'lignesParCreneau', 
+        'nonAssignees', 
+        'nonAssignees', 
+        'stats',
+        'sites',
+        'currentSiteId'
+    ));
+}
 
     // ── POST /chauffeur/scan ───────────────────────────────────
     public function scan(Request $request)
@@ -318,24 +337,34 @@ class PlanningController extends Controller
 
 
     // ── POST /chauffeur/livre-client ──────────────────────────────
+// ── POST /chauffeur/livre-client ──────────────────────────────
 public function livreClient(Request $request)
 {
     try {
         $chauffeurId = session('chauffeur_id') ?? $request->input('chauffeur_id');
-        if (!$chauffeurId) return response()->json(['error' => 'Non connecte'], 401);
+        if (!$chauffeurId) {
+            return response()->json(['error' => 'Non connecté'], 401);
+        }
 
         $line = TourneeLine::find($request->input('line_id'));
-        if (!$line) return response()->json(['error' => 'Ligne introuvable'], 404);
+        if (!$line) {
+            return response()->json(['error' => 'Ligne introuvable'], 404);
+        }
 
-        $line->update(['statut' => 'livre_client', 'scanned_at' => now()]);
+        $line->update([
+            'statut'       => 'livre_client',
+            'scanned_at'   => now(),
+            'scanned_barcode' => $line->scanned_barcode ?? 'LIVRE_CLIENT',
+        ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Piece livree directement au client',
+            'message' => 'Pièce marquée comme livrée directement au client',
             'statut'  => 'livre_client',
         ]);
 
     } catch (\Exception $e) {
+        \Log::error('livreClient error: ' . $e->getMessage());
         return response()->json(['error' => $e->getMessage()], 500);
     }
 }
@@ -458,4 +487,16 @@ public function livreClient(Request $request)
             'statsBySite', 'dateFrom', 'dateTo'
         ));
     }
+
+    public function switchSite(Request $request)
+    {
+        $siteId = $request->input('site_id');
+        if ($siteId) {
+            session(['chauffeur_site_filter' => $siteId]);
+        } else {
+            session()->forget('chauffeur_site_filter');
+        }
+        return redirect()->route('chauffeur.planning');
+    }
 }
+

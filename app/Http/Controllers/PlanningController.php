@@ -17,8 +17,9 @@ class PlanningController extends Controller
         $chauffeurs = Chauffeur::where('is_active', true)->orderBy('name')->get();
         $sites      = Site::where('is_active', true)->orderBy('name')->get();
 
-        $query = TourneeLine::with(['chauffeur', 'fournisseur', 'site'])
-            ->whereDate('date_tournee', $date);
+
+            $query = TourneeLine::with(['chauffeur', 'fournisseur', 'site'])
+    ->whereDate('date_tournee', $date);
 
         if ($request->filled('chauffeur_id'))
             $query->where('chauffeur_id', $request->chauffeur_id);
