@@ -64,7 +64,7 @@ class ApiTourneeController extends Controller
         if (!$site) return response()->json(['error' => 'Clé API invalide'], 401);
 
         $validated = $request->validate([
-            'source_type' => 'required|in:facture_vente,commande_achat,bl,commande_stock',
+            'source_type' => 'required|in:facture_vente,commande_achat,bl,commande_stock,commande_vente',
             'source_id' => 'nullable|integer',
             'source_numdoc'         => 'required|string',
             'source_line_id'        => 'nullable|integer',
