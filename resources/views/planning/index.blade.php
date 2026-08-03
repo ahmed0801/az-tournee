@@ -81,9 +81,15 @@
         <button type="submit" class="btn btn-primary btn-sm px-3">
             <i class="fas fa-filter me-1"></i> Filtrer
         </button>
-        <a href="{{ route('planning.index') }}" class="btn btn-outline-secondary btn-sm px-3">
+        <!-- <a href="{{ route('planning.index') }}" class="btn btn-outline-secondary btn-sm px-3">
             <i class="fas fa-undo me-1"></i> Aujourd'hui
-        </a>
+        </a> -->
+
+        <a href="{{ route('planning.index') }}?site_id={{ session('planning_site_id', '') }}" 
+   class="btn btn-outline-secondary btn-sm px-3">
+    <i class="fas fa-undo me-1"></i> Aujourd'hui
+</a>
+
     </form>
 
     {{-- ── STATS ───────────────────────────────────────────────── --}}

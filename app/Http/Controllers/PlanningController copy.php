@@ -287,6 +287,7 @@ class PlanningController extends Controller
             'scanned_barcode' => $request->barcode,
             'scanned_at'      => now(),
         ]);
+        
 
         BarcodeHistory::create([
             'tournee_line_id' => $line->id,
