@@ -79,6 +79,16 @@ Route::post('/chauffeur/logout', function () {
     return redirect('/chauffeur');
 })->name('chauffeur.logout');
 
+
+
+Route::get('/planning/creneaux/{siteId}', [PlanningController::class, 'getCreneauxForSite'])->name('planning.creneaux');
+Route::post('/planning/update-slot', [PlanningController::class, 'updateSlot'])->name('planning.update_slot');
+Route::post('/planning/update-date', [PlanningController::class, 'updateDate'])->name('planning.update_date');
+Route::delete('/planning/delete-line/{id}', [PlanningController::class, 'deleteLine'])->name('planning.delete_line');
+
+
+
+
 // ══════════════════════════════════════════════════════════════
 // ADMINISTRATION
 // ══════════════════════════════════════════════════════════════

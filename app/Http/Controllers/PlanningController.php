@@ -11,73 +11,67 @@ use Illuminate\Http\Request;
 class PlanningController extends Controller
 {
     // ── GET /planning ─────────────────────────────────────────
+  
+    
     public function index(Request $request)
-    {
-        $date       = $request->date ?? today()->format('Y-m-d');
-        $chauffeurs = Chauffeur::where('is_active', true)->orderBy('name')->get();
-        $sites      = Site::where('is_active', true)->orderBy('name')->get();
+{
+    $date       = $request->date ?? today()->format('Y-m-d');
+    $chauffeurs = Chauffeur::where('is_active', true)->orderBy('name')->get();
+    $sites      = Site::where('is_active', true)->orderBy('name')->get();
 
+    $query = TourneeLine::with(['chauffeur', 'fournisseur', 'site'])
+        ->whereDate('date_tournee', $date);
 
-            $query = TourneeLine::with(['chauffeur', 'fournisseur', 'site'])
-    ->whereDate('date_tournee', $date);
+    if ($request->filled('chauffeur_id'))
+        $query->where('chauffeur_id', $request->chauffeur_id);
 
-        if ($request->filled('chauffeur_id'))
-            $query->where('chauffeur_id', $request->chauffeur_id);
-        
-        // Mémoriser site_id en session
-if ($request->filled('site_id')) {
-    session(['planning_site_id' => $request->site_id]);
-} elseif ($request->has('site_id')) {
-    // site_id vide = tous les sites
-    session(['planning_site_id' => '']);
+    // Mémoriser site_id en session
+    if ($request->filled('site_id')) {
+        session(['planning_site_id' => $request->site_id]);
+    } elseif ($request->has('site_id')) {
+        session(['planning_site_id' => '']);
+    }
+    $filteredSiteId = session('planning_site_id');
+    if ($filteredSiteId)
+        $query->where('site_id', $filteredSiteId);
+
+    if ($request->filled('statut'))
+        $query->where('statut', $request->statut);
+    if ($request->filled('search'))
+        $query->where('source_numdoc', 'like', '%' . $request->search . '%');
+
+    // Grouper dynamiquement par slot
+    $toutesLignes = (clone $query)->orderBy('slot')->orderBy('fournisseur_name')->get();
+
+    $lignesParCreneau = collect();
+    foreach ($toutesLignes->groupBy('slot') as $slot => $lignes) {
+        $lignesParCreneau[$slot] = $lignes->groupBy('fournisseur_name');
+    }
+
+    $lignesMatin     = $toutesLignes->whereIn('slot', ['matin', '9h-11h', '11h-12h'])->groupBy('fournisseur_name');
+    $lignesApresMidi = $toutesLignes->whereIn('slot', ['apres_midi', '13h-14h', '15h-16h', '17h-18h'])->groupBy('fournisseur_name');
+
+    $statsQuery = TourneeLine::whereDate('date_tournee', $date);
+    if ($filteredSiteId) $statsQuery->where('site_id', $filteredSiteId);
+
+    $stats = [
+        'total'         => (clone $statsQuery)->count(),
+        'en_attente'    => (clone $statsQuery)->where('statut', 'en_attente')->count(),
+        'assigné'       => (clone $statsQuery)->where('statut', 'assigné')->count(),
+        'en_route'      => (clone $statsQuery)->where('statut', 'en_route')->count(),
+        'recupere'      => (clone $statsQuery)->where('statut', 'recupere')->count(),
+        'au_magasin'    => (clone $statsQuery)->where('statut', 'au_magasin')->count(),
+        'probleme'      => (clone $statsQuery)->where('statut', 'probleme')->count(),
+        'non_assignees' => (clone $statsQuery)->whereNull('chauffeur_id')->whereNotIn('statut', ['recupere', 'au_magasin'])->count(),
+    ];
+
+    return view('planning.index', compact(
+        'lignesMatin', 'lignesApresMidi', 'lignesParCreneau',
+        'chauffeurs', 'sites', 'date', 'stats', 'filteredSiteId'
+    ));
 }
 
-$filteredSiteId = session('planning_site_id');
 
-if ($filteredSiteId)
-    $query->where('site_id', $filteredSiteId);
-
-        if ($request->filled('statut'))
-            $query->where('statut', $request->statut);
-        // Recherche par numéro de facture (utilisé par les vendeurs)
-        if ($request->filled('search'))
-            $query->where('source_numdoc', 'like', '%' . $request->search . '%');
-
-        // Grouper par créneau puis par fournisseur
-        $allSlots = ['9h-11h', '11h-12h', '13h-14h', '15h-16h', '17h-18h', 'matin', 'apres_midi'];
-        $lignesParCreneau = collect();
-
-        foreach ($allSlots as $slot) {
-            $lignes = (clone $query)
-                ->where('slot', $slot)
-                ->orderBy('fournisseur_name')
-                ->get()
-                ->groupBy('fournisseur_name');
-            if ($lignes->isNotEmpty()) {
-                $lignesParCreneau[$slot] = $lignes;
-            }
-        }
-
-        // Compatibilité ancienne vue
-        $lignesMatin     = $lignesParCreneau->only(['matin', '9h-11h', '11h-12h'])->collapse();
-        $lignesApresMidi = $lignesParCreneau->only(['apres_midi', '13h-14h', '15h-16h', '17h-18h'])->collapse();
-
-        $stats = [
-            'total'      => TourneeLine::whereDate('date_tournee', $date)->count(),
-            'en_attente' => TourneeLine::whereDate('date_tournee', $date)->where('statut', 'en_attente')->count(),
-            'assigné'    => TourneeLine::whereDate('date_tournee', $date)->where('statut', 'assigné')->count(),
-            'en_route'   => TourneeLine::whereDate('date_tournee', $date)->where('statut', 'en_route')->count(),
-            'recupere'   => TourneeLine::whereDate('date_tournee', $date)->where('statut', 'recupere')->count(),
-            'au_magasin' => TourneeLine::whereDate('date_tournee', $date)->where('statut', 'au_magasin')->count(),
-            'probleme'   => TourneeLine::whereDate('date_tournee', $date)->where('statut', 'probleme')->count(),
-            'non_assignees' => TourneeLine::whereDate('date_tournee', $date)->whereNull('chauffeur_id')->whereNotIn('statut', ['recupere', 'au_magasin'])->count(),
-        ];
-
-        return view('planning.index', compact(
-            'lignesMatin', 'lignesApresMidi', 'lignesParCreneau',
-            'chauffeurs', 'sites', 'date', 'stats'
-        ));
-    }
 
     // ── POST /planning/assign ──────────────────────────────────
     public function assign(Request $request)
@@ -512,5 +506,43 @@ public function livreClient(Request $request)
         }
         return redirect()->route('chauffeur.planning');
     }
+
+
+
+
+
+
+    
+
+
+    public function getCreneauxForSite($siteId)
+{
+    $parametre = \App\Models\TourneeParametre::where('site_id', $siteId)->first();
+    if (!$parametre) return response()->json([]);
+    return response()->json($parametre->creneaux ?? []);
+}
+
+public function updateSlot(Request $request)
+{
+    $line = TourneeLine::findOrFail($request->line_id);
+    $line->update(['slot' => $request->slot]);
+    return response()->json(['success' => true]);
+}
+
+public function updateDate(Request $request)
+{
+    $line = TourneeLine::findOrFail($request->line_id);
+    $line->update(['date_tournee' => $request->date]);
+    return response()->json(['success' => true]);
+}
+
+public function deleteLine($id)
+{
+    $line = TourneeLine::findOrFail($id);
+    $line->delete();
+    return response()->json(['success' => true]);
+}
+
+
 }
 

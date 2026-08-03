@@ -30,7 +30,7 @@
 
     <div id="group-{{ $groupId }}">
         @foreach($lignes as $ligne)
-        <div class="line-row" id="line-row-{{ $ligne->id }}">
+        <div class="line-row">
             {{-- Code article --}}
             <span class="article-code">{{ $ligne->article_code }}</span>
 
@@ -70,9 +70,6 @@
                 @endforeach
             </select>
 
-
-
-
             {{-- Statut --}}
             @php
                 $bgColor = '#f3f4f6';
@@ -93,41 +90,6 @@
                 <option value="livre_client" {{ $ligne->statut === 'livre_client' ? 'selected' : '' }}>🚪 Livré client</option>
                 <option value="probleme"   {{ $ligne->statut === 'probleme'   ? 'selected' : '' }}>⚠️ Problème</option>
             </select>
-
-
-
-
-
-            {{-- Changer le créneau --}}
-{{-- Changer le créneau --}}
-<select class="form-select form-select-sm slot-select"
-        style="width:110px; font-size:0.72rem;"
-        data-line-id="{{ $ligne->id }}"
-        data-site-id="{{ $ligne->site_id }}"
-        onchange="updateSlot({{ $ligne->id }}, this.value)">
-    <option value="{{ $ligne->slot }}" selected>{{ $ligne->slot }}</option>
-</select>
-
-{{-- Changer la date --}}
-<input type="date"
-       class="form-control form-control-sm"
-       style="width:130px; font-size:0.72rem;"
-       value="{{ $ligne->date_tournee->format('Y-m-d') }}"
-       onchange="updateDate({{ $ligne->id }}, this.value)">
-
-{{-- Supprimer --}}
-<button onclick="deleteLine({{ $ligne->id }}, this)"
-        style="background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;
-               border-radius:6px;font-size:0.7rem;font-weight:600;
-               padding:3px 8px;cursor:pointer;">
-    🗑 retirer
-</button>
-
-
-
-
-
-
 
             {{-- Heure scan --}}
             @if($ligne->scanned_at)

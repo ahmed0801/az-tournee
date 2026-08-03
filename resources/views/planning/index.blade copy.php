@@ -104,15 +104,17 @@
 
     {{-- ── MATIN ───────────────────────────────────────────────── --}}
     @php
-    $allCreneaux = [];
-    foreach ($lignesParCreneau->keys() as $slotKey) {
-        $allCreneaux[$slotKey] = [
-            'icon'  => '🕐',
-            'label' => $slotKey,
-            'color' => 'slot-header',
+        $allCreneaux = [
+            '9h-11h'  => ['icon' => '🌅', 'label' => '9h – 11h',  'color' => 'slot-header'],
+            '11h-12h' => ['icon' => '🕚', 'label' => '11h – 12h', 'color' => 'slot-header'],
+            '13h-14h' => ['icon' => '🌞', 'label' => '13h – 14h', 'color' => 'slot-header apm'],
+            '15h-16h' => ['icon' => '🕒', 'label' => '15h – 16h', 'color' => 'slot-header apm'],
+            '17h-18h' => ['icon' => '🌇', 'label' => '17h – 18h', 'color' => 'slot-header apm'],
+            // Compatibilité anciens slots
+            'matin'      => ['icon' => '🌅', 'label' => 'Matin (8h-12h)',      'color' => 'slot-header'],
+            'apres_midi' => ['icon' => '🌇', 'label' => 'Après-midi (13h-18h)', 'color' => 'slot-header apm'],
         ];
-    }
-@endphp
+    @endphp
 
     @foreach($allCreneaux as $slotKey => $slotInfo)
         @php

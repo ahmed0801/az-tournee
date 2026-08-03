@@ -23,8 +23,20 @@ class PlanningController extends Controller
 
         if ($request->filled('chauffeur_id'))
             $query->where('chauffeur_id', $request->chauffeur_id);
-        if ($request->filled('site_id'))
-            $query->where('site_id', $request->site_id);
+        
+        // Mémoriser site_id en session
+if ($request->filled('site_id')) {
+    session(['planning_site_id' => $request->site_id]);
+} elseif ($request->has('site_id')) {
+    // site_id vide = tous les sites
+    session(['planning_site_id' => '']);
+}
+
+$filteredSiteId = session('planning_site_id');
+
+if ($filteredSiteId)
+    $query->where('site_id', $filteredSiteId);
+
         if ($request->filled('statut'))
             $query->where('statut', $request->statut);
         // Recherche par numéro de facture (utilisé par les vendeurs)
@@ -500,5 +512,43 @@ public function livreClient(Request $request)
         }
         return redirect()->route('chauffeur.planning');
     }
+
+
+
+
+
+
+    
+
+
+    public function getCreneauxForSite($siteId)
+{
+    $parametre = \App\Models\TourneeParametre::where('site_id', $siteId)->first();
+    if (!$parametre) return response()->json([]);
+    return response()->json($parametre->creneaux ?? []);
+}
+
+public function updateSlot(Request $request)
+{
+    $line = TourneeLine::findOrFail($request->line_id);
+    $line->update(['slot' => $request->slot]);
+    return response()->json(['success' => true]);
+}
+
+public function updateDate(Request $request)
+{
+    $line = TourneeLine::findOrFail($request->line_id);
+    $line->update(['date_tournee' => $request->date]);
+    return response()->json(['success' => true]);
+}
+
+public function deleteLine($id)
+{
+    $line = TourneeLine::findOrFail($id);
+    $line->delete();
+    return response()->json(['success' => true]);
+}
+
+
 }
 
