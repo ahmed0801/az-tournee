@@ -17,7 +17,7 @@
         </div>
         <div class="d-flex align-items-center gap-2">
             @php
-                $recuperees = $lignes->where('statut', 'recupere')->count();
+                $recuperees = $lignes->whereIn('statut', ['recupere', 'au_magasin', 'livre_client'])->count();
                 $total      = $lignes->count();
             @endphp
             <span class="fourn-count {{ $recuperees === $total ? 'done' : '' }}">
@@ -56,106 +56,87 @@
             </div>
 
             {{-- ── Actions selon statut ─────────────── --}}
-            @if(!in_array($ligne->statut, ['recupere', 'au_magasin']))
+            <div class="action-btns">
 
-                <div class="action-btns">
-    @if($ligne->statut === 'livre_client')
-        <div class="result-recupere">
-            <i class="fas fa-check-circle"></i>
-            <strong>Livré directement au client</strong>
-        </div>
+                @if($ligne->statut === 'livre_client')
+                    <div class="result-recupere">
+                        <i class="fas fa-check-circle"></i>
+                        <strong>Livré directement au client</strong>
+                    </div>
 
-    @elseif($ligne->statut === 'recupere')
-        <div class="result-recupere">
-            <i class="fas fa-check-circle"></i>
-            Récupérée
-            @if($ligne->scanned_at)
-                — {{ $ligne->scanned_at->format('H:i') }}
-            @endif
-        </div>
-
-        <button id="btn-livre-{{ $ligne->id }}"
-                onclick="livreClient({{ $ligne->id }})"
-                class="btn btn-sm btn-primary mt-2">
-            <i class="fas fa-truck"></i> Livré client
-        </button>
-
-    @elseif(in_array($ligne->statut, ['en_attente', 'assigné', 'en_route']))
-        <!-- Boutons de scan et actions -->
-        <button class="btn-scan" id="btn-scan-{{ $ligne->id }}"
-                onclick="toggleScan({{ $ligne->id }})">
-            <i class="fas fa-barcode me-1"></i> Scanner
-        </button>
-
-        <button class="btn-done" onclick="markDone({{ $ligne->id }})" title="Marquer récupérée sans scan">
-            <i class="fas fa-check"></i>
-        </button>
-
-        <button class="btn-probleme" onclick="openProbleme({{ $ligne->id }}, '{{ $ligne->article_code }}', '{{ addslashes($ligne->article_name) }}')">
-            <i class="fas fa-exclamation-triangle"></i>
-        </button>
-
-    @elseif($ligne->statut === 'probleme')
-        <div class="result-probleme">
-            <i class="fas fa-exclamation-triangle me-1"></i>
-            {{ $ligne->probleme_notes }}
-        </div>
-    @endif
-</div>
-
-                {{-- Zone de scan ──────────────────────── --}}
-                @if(!in_array($ligne->statut, ['recupere', 'livre_client', 'au_magasin']))
-                <div class="scan-zone" id="scan-zone-{{ $ligne->id }}">
-                    <div class="scan-info">
-                        @if($ligne->barcode)
-                            Code attendu : <code>{{ $ligne->barcode }}</code>
-                        @else
-                            <span style="color:#cc8030;">Pas de code-barres enregistré — vous pouvez en associer un</span>
+                @elseif($ligne->statut === 'recupere')
+                    <div class="result-recupere">
+                        <i class="fas fa-check-circle"></i>
+                        Récupérée
+                        @if($ligne->scanned_at)
+                            — {{ $ligne->scanned_at->format('H:i') }}
+                        @endif
+                        @if($ligne->scanned_barcode)
+                            <code style="font-size:0.68rem; color:#4a8060;">{{ $ligne->scanned_barcode }}</code>
                         @endif
                     </div>
-                    <input type="text"
-                           class="scan-input"
-                           id="scan-input-{{ $ligne->id }}"
-                           placeholder="Scanner le code-barres..."
-                           autocomplete="off"
-                           onkeydown="if(event.key==='Enter'){ event.preventDefault(); submitScan({{ $ligne->id }}); }">
-                    <button class="btn-validate-scan" onclick="submitScan({{ $ligne->id }})">
-                        <i class="fas fa-check me-1"></i>Valider
+                    <button id="btn-livre-{{ $ligne->id }}"
+                            onclick="livreClient({{ $ligne->id }})"
+                            style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:white;
+                                   border:1px solid #a78bfa;border-radius:6px;padding:4px 10px;
+                                   font-size:0.72rem;font-weight:700;cursor:pointer;margin-top:4px;">
+                        &#128682; Livré client
                     </button>
-                    <div class="scan-feedback" id="scan-feedback-{{ $ligne->id }}"></div>
-                </div>
+                    <button onclick="annulerScan({{ $ligne->id }})"
+                            style="background:rgba(220,53,69,0.15);color:#ff8888;border:1px solid rgba(220,53,69,0.3);
+                                   border-radius:6px;padding:4px 10px;font-size:0.72rem;font-weight:700;
+                                   cursor:pointer;margin-top:4px;">
+                        ↩ Annuler
+                    </button>
+
+                @elseif($ligne->statut === 'au_magasin')
+                    <div class="result-recupere">
+                        <i class="fas fa-store me-1"></i> Au magasin
+                    </div>
+
+                @elseif($ligne->statut === 'probleme')
+                    <div class="result-probleme">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        {{ $ligne->probleme_notes }}
+                    </div>
+
+                @else
+                    {{-- en_attente, assigné, en_route --}}
+                    <button class="btn-scan" id="btn-scan-{{ $ligne->id }}"
+                            onclick="toggleScan({{ $ligne->id }})">
+                        <i class="fas fa-barcode me-1"></i> Scanner
+                    </button>
+                    <button class="btn-done" onclick="markDone({{ $ligne->id }})" title="Marquer récupérée sans scan">
+                        <i class="fas fa-check"></i>
+                    </button>
+                    <button class="btn-probleme" onclick="openProbleme({{ $ligne->id }}, '{{ $ligne->article_code }}', '{{ addslashes($ligne->article_name) }}')">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </button>
                 @endif
 
-            
-                @elseif($ligne->statut === 'recupere' || $ligne->statut === 'livre_client')
-    <div class="result-recupere">
-        <i class="fas fa-check-circle"></i>
-        @if($ligne->statut === 'livre_client')
-            <strong>Livré directement au client</strong>
-        @else
-            Récupérée
-            @if($ligne->scanned_at)
-                — {{ $ligne->scanned_at->format('H:i') }}
-            @endif
-        @endif
-    </div>
+            </div>
 
-    @if($ligne->statut !== 'livre_client')
-        <button id="btn-livre-{{ $ligne->id }}"
-                onclick="livreClient({{ $ligne->id }})"
-                style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:white;
-                       border:1px solid #a78bfa;border-radius:6px;padding:4px 10px;
-                       font-size:0.72rem;font-weight:700;cursor:pointer;margin-top:4px;">
-            &#128682; Livré client
-        </button>
-    @endif
-
-
-            @elseif($ligne->statut === 'probleme')
-                <div class="result-probleme">
-                    <i class="fas fa-exclamation-triangle me-1"></i>
-                    {{ $ligne->probleme_notes }}
+            {{-- Zone de scan --}}
+            @if(in_array($ligne->statut, ['en_attente', 'assigné', 'en_route']))
+            <div class="scan-zone" id="scan-zone-{{ $ligne->id }}">
+                <div class="scan-info">
+                    @if($ligne->barcode)
+                        Code attendu : <code>{{ $ligne->barcode }}</code>
+                    @else
+                        <span style="color:#cc8030;">Pas de code-barres enregistré — vous pouvez en associer un</span>
+                    @endif
                 </div>
+                <input type="text"
+                       class="scan-input"
+                       id="scan-input-{{ $ligne->id }}"
+                       placeholder="Scanner le code-barres..."
+                       autocomplete="off"
+                       onkeydown="if(event.key==='Enter'){ event.preventDefault(); submitScan({{ $ligne->id }}); }">
+                <button class="btn-validate-scan" onclick="submitScan({{ $ligne->id }})">
+                    <i class="fas fa-check me-1"></i>Valider
+                </button>
+                <div class="scan-feedback" id="scan-feedback-{{ $ligne->id }}"></div>
+            </div>
             @endif
 
         </div>

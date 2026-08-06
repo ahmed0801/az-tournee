@@ -415,7 +415,8 @@
     $nonAssignees = \App\Models\TourneeLine::with(['site', 'fournisseur'])
         ->whereDate('date_tournee', today())
         ->whereNull('chauffeur_id')
-        ->whereNotIn('statut', ['recupere', 'au_magasin'])
+        ->whereNotIn('statut', ['recupere', 'au_magasin', 'livre_client'])
+        ->when($currentSiteId ?? null, fn($q) => $q->where('site_id', $currentSiteId))
         ->orderBy('fournisseur_name')
         ->get();
 @endphp
