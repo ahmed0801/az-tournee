@@ -24,6 +24,44 @@
         .chauffeur-select { font-size: 0.78rem; padding: 3px 8px; border-radius: 6px; border: 1px solid #dee2e6; min-width: 140px; }
         .badge-statut { font-size: 0.72rem; padding: 3px 8px; border-radius: 8px; }
         .empty-slot { text-align: center; padding: 30px; color: #9bacc4; }
+
+
+
+
+
+
+
+
+        /* ── Recherche en temps réel ─────────────────────────── */
+.search-bar {
+    background: white;
+    border-radius: 12px;
+    padding: 12px 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    margin-bottom: 16px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.search-input {
+    border: 1.5px solid #e0e8ff;
+    border-radius: 8px;
+    padding: 7px 14px 7px 36px;
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.2s;
+    background: #f8fbff;
+    min-width: 200px;
+    flex: 1;
+}
+.search-input:focus { border-color: #0d6efd; background: white; }
+.search-wrap { position: relative; flex: 1; min-width: 180px; }
+.search-wrap i { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: #9bacc4; font-size: 0.8rem; }
+.search-label { font-size: 0.72rem; font-weight: 700; color: #6c8aad; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+#search-count { font-size: 0.78rem; color: #6c757d; white-space: nowrap; }
+.line-row.hidden { display: none !important; }
+.fourn-card.all-hidden .fourn-header { opacity: 0.4; }
     </style>
 </head>
 <body>
@@ -78,6 +116,7 @@
                 <option value="probleme"   {{ request('statut') == 'probleme'   ? 'selected' : '' }}>Problème</option>
             </select>
         </div>
+        
         <button type="submit" class="btn btn-primary btn-sm px-3">
             <i class="fas fa-filter me-1"></i> Filtrer
         </button>
@@ -101,6 +140,30 @@
         <div class="col"><div class="stat-card" style="background:#198754;"><h3>{{ $stats['recupere'] }}</h3><p>Récupérés</p></div></div>
         <div class="col"><div class="stat-card" style="background:#dc3545;"><h3>{{ $stats['probleme'] }}</h3><p>Problèmes</p></div></div>
     </div>
+
+
+
+
+    {{-- ── RECHERCHE EN TEMPS RÉEL ─────────────────────── --}}
+<div class="search-bar">
+    <span class="search-label"><i class="fas fa-bolt me-1 text-warning"></i> Recherche rapide</span>
+    <div class="search-wrap">
+        <i class="fas fa-barcode"></i>
+        <input type="text" id="search-piece" class="search-input" placeholder="Référence article...">
+    </div>
+    <div class="search-wrap">
+        <i class="fas fa-user-tie"></i>
+        <input type="text" id="search-vendeur" class="search-input" placeholder="Vendeur...">
+    </div>
+    <span id="search-count" class="ms-2"></span>
+    <button onclick="clearSearch()" class="btn btn-sm btn-outline-secondary px-3">
+        <i class="fas fa-times me-1"></i> Effacer
+    </button>
+</div>
+
+
+
+
 
     {{-- ── MATIN ───────────────────────────────────────────────── --}}
     @php
@@ -247,6 +310,67 @@ function deleteLine(lineId, btn) {
         } else alert('Erreur suppression');
     });
 }
+
+
+
+
+
+
+
+
+
+// ── Recherche en temps réel ──────────────────────────────
+var searchPiece  = document.getElementById('search-piece');
+var searchVendeur = document.getElementById('search-vendeur');
+var searchCount  = document.getElementById('search-count');
+
+function applySearch() {
+    var piece   = searchPiece.value.trim().toLowerCase();
+    var vendeur = searchVendeur.value.trim().toLowerCase();
+    var total   = 0;
+    var visible = 0;
+
+    document.querySelectorAll('.line-row').forEach(function(row) {
+        total++;
+        var code    = (row.getAttribute('data-search-code')    || '').toLowerCase();
+        var name    = (row.getAttribute('data-search-name')    || '').toLowerCase();
+        var vend    = (row.getAttribute('data-search-vendeur') || '').toLowerCase();
+
+        var matchPiece   = !piece   || code.includes(piece)   || name.includes(piece);
+        var matchVendeur = !vendeur || vend.includes(vendeur);
+
+        if (matchPiece && matchVendeur) {
+            row.classList.remove('hidden');
+            visible++;
+        } else {
+            row.classList.add('hidden');
+        }
+    });
+
+    // Masquer les fournisseurs sans lignes visibles
+    document.querySelectorAll('.fourn-card').forEach(function(card) {
+        var hasVisible = card.querySelectorAll('.line-row:not(.hidden)').length > 0;
+        card.style.display = hasVisible ? '' : 'none';
+    });
+
+    // Afficher le compteur si recherche active
+    if (piece || vendeur) {
+        searchCount.textContent = visible + ' / ' + total + ' pièce(s)';
+        searchCount.style.color = visible === 0 ? '#dc3545' : '#198754';
+    } else {
+        searchCount.textContent = '';
+    }
+}
+
+function clearSearch() {
+    searchPiece.value = '';
+    searchVendeur.value = '';
+    applySearch();
+    searchPiece.focus();
+}
+
+searchPiece.addEventListener('input', applySearch);
+searchVendeur.addEventListener('input', applySearch);
 
 
 </script>
