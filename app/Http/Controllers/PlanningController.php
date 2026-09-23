@@ -28,7 +28,10 @@ class PlanningController extends Controller
     // ── Mode historique : activé si recherche article/numdoc ──
     $searchArticle = trim($request->input('search_article', ''));
     $searchNumdoc  = trim($request->input('search_numdoc', ''));
-    $modeHistorique = $searchArticle !== '' || $searchNumdoc !== '';
+    $modeHistorique = $searchArticle !== '' 
+    || $searchNumdoc !== '' 
+    || $request->filled('date_from') 
+    || $request->filled('date_to');
 
     $dateFrom = $request->input('date_from', $modeHistorique
         ? today()->subDays(30)->format('Y-m-d')
