@@ -30,7 +30,10 @@
 
     <div id="group-{{ $groupId }}">
         @foreach($lignes as $ligne)
-        <div class="line-row" id="line-row-{{ $ligne->id }}">
+        <div class="line-row" id="line-row-{{ $ligne->id }}"
+     data-search-code="{{ strtolower($ligne->article_code) }}"
+     data-search-name="{{ strtolower($ligne->article_name) }}"
+     data-search-vendeur="{{ strtolower($ligne->created_by_name ?? '') }}">
             {{-- Code article --}}
             <span class="article-code">{{ $ligne->article_code }}</span>
 

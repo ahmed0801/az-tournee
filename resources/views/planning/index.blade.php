@@ -82,54 +82,129 @@
 <div class="container-fluid px-4">
 
     {{-- ── FILTRES ─────────────────────────────────────────────── --}}
+    
+    
+
     <form method="GET" class="d-flex flex-wrap gap-2 align-items-end mb-3">
+
+    {{-- Raccourcis rapides --}}
+    <div class="d-flex gap-1 align-items-center me-2">
+        <a href="{{ route('planning.index') }}?site_id={{ session('planning_site_id','') }}"
+           class="btn btn-sm {{ !$modeHistorique ? 'btn-primary' : 'btn-outline-secondary' }}">
+            📅 Aujourd'hui
+        </a>
+        <a href="?date={{ today()->subDay()->format('Y-m-d') }}&site_id={{ session('planning_site_id','') }}"
+           class="btn btn-sm btn-outline-secondary">Hier</a>
+        <a href="?date_from={{ today()->startOfWeek()->format('Y-m-d') }}&date_to={{ today()->format('Y-m-d') }}&site_id={{ session('planning_site_id','') }}&search_article={{ request('search_article') }}"
+           class="btn btn-sm btn-outline-secondary">Cette semaine</a>
+        <a href="?date_from={{ today()->startOfMonth()->format('Y-m-d') }}&date_to={{ today()->format('Y-m-d') }}&site_id={{ session('planning_site_id','') }}&search_article={{ request('search_article') }}"
+           class="btn btn-sm btn-outline-secondary">Ce mois</a>
+    </div>
+
+    {{-- Date / plage --}}
+    @if($modeHistorique)
+        <div>
+            <label class="form-label small fw-bold mb-1">Du</label>
+            <input type="date" name="date_from" class="form-control form-control-sm" value="{{ $dateFrom }}">
+        </div>
+        <div>
+            <label class="form-label small fw-bold mb-1">Au</label>
+            <input type="date" name="date_to" class="form-control form-control-sm" value="{{ $dateTo }}">
+        </div>
+    @else
         <div>
             <label class="form-label small fw-bold mb-1">Date</label>
             <input type="date" name="date" class="form-control form-control-sm" value="{{ $date }}">
         </div>
-        <div>
-            <label class="form-label small fw-bold mb-1">Chauffeur</label>
-            <select name="chauffeur_id" class="form-select form-select-sm" style="min-width:140px;">
-                <option value="">Tous</option>
-                @foreach($chauffeurs as $c)
-                    <option value="{{ $c->id }}" {{ request('chauffeur_id') == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div>
-            <label class="form-label small fw-bold mb-1">Magasin</label>
-            <select name="site_id" class="form-select form-select-sm" style="min-width:130px;">
-                <option value="">Tous</option>
-                @foreach($sites as $s)
-                    <option value="{{ $s->id }}" {{ request('site_id') == $s->id ? 'selected' : '' }}>{{ $s->name }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div>
-            <label class="form-label small fw-bold mb-1">Statut</label>
-            <select name="statut" class="form-select form-select-sm">
-                <option value="">Tous</option>
-                <option value="en_attente" {{ request('statut') == 'en_attente' ? 'selected' : '' }}>En attente</option>
-                <option value="assigné"    {{ request('statut') == 'assigné'    ? 'selected' : '' }}>Assigné</option>
-                <option value="en_route"   {{ request('statut') == 'en_route'   ? 'selected' : '' }}>En route</option>
-                <option value="recupere"   {{ request('statut') == 'recupere'   ? 'selected' : '' }}>Récupéré</option>
-                <option value="probleme"   {{ request('statut') == 'probleme'   ? 'selected' : '' }}>Problème</option>
-            </select>
-        </div>
-        
-        <button type="submit" class="btn btn-primary btn-sm px-3">
-            <i class="fas fa-filter me-1"></i> Filtrer
-        </button>
-        <!-- <a href="{{ route('planning.index') }}" class="btn btn-outline-secondary btn-sm px-3">
-            <i class="fas fa-undo me-1"></i> Aujourd'hui
-        </a> -->
+    @endif
 
-        <a href="{{ route('planning.index') }}?site_id={{ session('planning_site_id', '') }}" 
-   class="btn btn-outline-secondary btn-sm px-3">
-    <i class="fas fa-undo me-1"></i> Aujourd'hui
-</a>
+    {{-- Référence article ← LE FILTRE CLÉ --}}
+    <div>
+        <label class="form-label small fw-bold mb-1">
+            🔍 Référence article
+            @if($searchArticle)
+                <span class="badge bg-warning text-dark ms-1">Historique activé</span>
+            @endif
+        </label>
+        <input type="text" name="search_article" class="form-control form-control-sm"
+               placeholder="Code ou désignation..." value="{{ $searchArticle }}"
+               style="min-width:180px;">
+    </div>
 
-    </form>
+    {{-- N° document --}}
+    <div>
+        <label class="form-label small fw-bold mb-1">N° facture/BL</label>
+        <input type="text" name="search_numdoc" class="form-control form-control-sm"
+               placeholder="Ex: FAC-2025-001" value="{{ request('search_numdoc') }}"
+               style="min-width:140px;">
+    </div>
+
+    {{-- Chauffeur --}}
+    <div>
+        <label class="form-label small fw-bold mb-1">Chauffeur</label>
+        <select name="chauffeur_id" class="form-select form-select-sm" style="min-width:130px;">
+            <option value="">Tous</option>
+            @foreach($chauffeurs as $c)
+                <option value="{{ $c->id }}" {{ request('chauffeur_id')==$c->id ? 'selected':'' }}>{{ $c->name }}</option>
+            @endforeach
+        </select>
+    </div>
+
+    {{-- Magasin --}}
+    <div>
+        <label class="form-label small fw-bold mb-1">Magasin</label>
+        <select name="site_id" class="form-select form-select-sm" style="min-width:120px;">
+            <option value="">Tous</option>
+            @foreach($sites as $s)
+                <option value="{{ $s->id }}" {{ session('planning_site_id')==$s->id ? 'selected':'' }}>{{ $s->name }}</option>
+            @endforeach
+        </select>
+    </div>
+
+    {{-- Statut --}}
+    <div>
+        <label class="form-label small fw-bold mb-1">Statut</label>
+        <select name="statut" class="form-select form-select-sm">
+            <option value="">Tous</option>
+            <option value="en_attente" {{ request('statut')=='en_attente' ? 'selected':'' }}>⏳ En attente</option>
+            <option value="assigné"    {{ request('statut')=='assigné'    ? 'selected':'' }}>👤 Assigné</option>
+            <option value="en_route"   {{ request('statut')=='en_route'   ? 'selected':'' }}>🚗 En route</option>
+            <option value="recupere"   {{ request('statut')=='recupere'   ? 'selected':'' }}>✅ Récupéré</option>
+            <option value="probleme"   {{ request('statut')=='probleme'   ? 'selected':'' }}>⚠️ Problème</option>
+        </select>
+    </div>
+
+    {{-- Vendeur --}}
+    <div>
+        <label class="form-label small fw-bold mb-1">Vendeur</label>
+        <input type="text" name="search_vendeur" class="form-control form-control-sm"
+               placeholder="Nom vendeur..." value="{{ request('search_vendeur') }}"
+               style="min-width:120px;">
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-sm px-3">
+        <i class="fas fa-filter me-1"></i> Filtrer
+    </button>
+    <a href="{{ route('planning.index') }}?site_id={{ session('planning_site_id','') }}"
+       class="btn btn-outline-secondary btn-sm px-3">
+        <i class="fas fa-undo me-1"></i> Reset
+    </a>
+</form>
+
+{{-- Bannière mode historique --}}
+@if($modeHistorique)
+<div class="alert alert-warning py-2 px-3 mb-3 d-flex align-items-center gap-2" style="font-size:0.82rem;">
+    <i class="fas fa-history"></i>
+    <strong>Mode historique</strong> — Recherche
+    @if($searchArticle) "<strong>{{ $searchArticle }}</strong>" @endif
+    du {{ \Carbon\Carbon::parse($dateFrom)->format('d/m/Y') }}
+    au {{ \Carbon\Carbon::parse($dateTo)->format('d/m/Y') }}
+    — <strong>{{ $stats['total'] }}</strong> résultat(s).
+    Les lignes sont groupées par date.
+</div>
+@endif
+
+
 
     {{-- ── STATS ───────────────────────────────────────────────── --}}
     <div class="row g-2 mb-3">
@@ -190,7 +265,8 @@
             @include('planning.partials.fourn-group-dispatcher', [
                 'fournisseurName' => $fournisseurName,
                 'lignes'          => $lignes,
-                'chauffeurs'      => $chauffeurs
+                'chauffeurs'      => $chauffeurs,
+                    'modeHistorique'  => $modeHistorique ?? false
             ])
         @endforeach
         @endif

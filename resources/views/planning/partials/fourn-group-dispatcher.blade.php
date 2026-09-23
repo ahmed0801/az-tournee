@@ -15,6 +15,15 @@
             @if($adresse)
                 <small class="text-muted ms-2"><i class="fas fa-map-marker-alt"></i> {{ $adresse }}</small>
             @endif
+
+            @if(isset($modeHistorique) && $modeHistorique)
+    <span class="badge bg-warning text-dark ms-2" style="font-size:0.68rem;">
+        📅 {{ optional($lignes->first()->date_tournee)->format('d/m/Y') }}
+        &nbsp;·&nbsp; {{ $lignes->first()->slot }}
+    </span>
+@endif
+
+
         </span>
         <div class="d-flex align-items-center gap-2">
             @php

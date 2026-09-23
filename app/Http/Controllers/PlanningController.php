@@ -13,19 +13,43 @@ class PlanningController extends Controller
     // ── GET /planning ─────────────────────────────────────────
   
     
+    
+    
+
+
+
+
     public function index(Request $request)
 {
     $date       = $request->date ?? today()->format('Y-m-d');
     $chauffeurs = Chauffeur::where('is_active', true)->orderBy('name')->get();
     $sites      = Site::where('is_active', true)->orderBy('name')->get();
 
-    $query = TourneeLine::with(['chauffeur', 'fournisseur', 'site'])
-        ->whereDate('date_tournee', $date);
+    // ── Mode historique : activé si recherche article/numdoc ──
+    $searchArticle = trim($request->input('search_article', ''));
+    $searchNumdoc  = trim($request->input('search_numdoc', ''));
+    $modeHistorique = $searchArticle !== '' || $searchNumdoc !== '';
 
+    $dateFrom = $request->input('date_from', $modeHistorique
+        ? today()->subDays(30)->format('Y-m-d')
+        : $date);
+    $dateTo   = $request->input('date_to', $modeHistorique
+        ? today()->format('Y-m-d')
+        : $date);
+
+    $query = TourneeLine::with(['chauffeur', 'fournisseur', 'site']);
+
+    // Plage de dates selon le mode
+    if ($modeHistorique) {
+        $query->whereBetween('date_tournee', [$dateFrom, $dateTo]);
+    } else {
+        $query->whereDate('date_tournee', $date);
+    }
+
+    // Filtres existants
     if ($request->filled('chauffeur_id'))
         $query->where('chauffeur_id', $request->chauffeur_id);
 
-    // Mémoriser site_id en session
     if ($request->filled('site_id')) {
         session(['planning_site_id' => $request->site_id]);
     } elseif ($request->has('site_id')) {
@@ -37,21 +61,62 @@ class PlanningController extends Controller
 
     if ($request->filled('statut'))
         $query->where('statut', $request->statut);
-    if ($request->filled('search'))
-        $query->where('source_numdoc', 'like', '%' . $request->search . '%');
 
-    // Grouper dynamiquement par slot
-    $toutesLignes = (clone $query)->orderBy('slot')->orderBy('fournisseur_name')->get();
-
-    $lignesParCreneau = collect();
-    foreach ($toutesLignes->groupBy('slot') as $slot => $lignes) {
-        $lignesParCreneau[$slot] = $lignes->groupBy('fournisseur_name');
+    // ── Nouveaux filtres ──────────────────────────────────────
+    if ($searchArticle !== '') {
+        $query->where(function($q) use ($searchArticle) {
+            $q->where('article_code', 'like', '%' . $searchArticle . '%')
+              ->orWhere('article_name', 'like', '%' . $searchArticle . '%');
+        });
+    }
+    if ($searchNumdoc !== '') {
+        $query->where('source_numdoc', 'like', '%' . $searchNumdoc . '%');
+    }
+    if ($request->filled('search_vendeur')) {
+        $query->where('created_by_name', 'like', '%' . $request->search_vendeur . '%');
+    }
+    if ($request->filled('search_fournisseur')) {
+        $query->where('fournisseur_name', 'like', '%' . $request->search_fournisseur . '%');
     }
 
-    $lignesMatin     = $toutesLignes->whereIn('slot', ['matin', '9h-11h', '11h-12h'])->groupBy('fournisseur_name');
-    $lignesApresMidi = $toutesLignes->whereIn('slot', ['apres_midi', '13h-14h', '15h-16h', '17h-18h'])->groupBy('fournisseur_name');
+    $toutesLignes = (clone $query)
+        ->orderBy('date_tournee', $modeHistorique ? 'desc' : 'asc')
+        ->orderBy('slot')
+        ->orderBy('fournisseur_name')
+        ->get();
 
-    $statsQuery = TourneeLine::whereDate('date_tournee', $date);
+    // Groupement
+    $lignesParCreneau = collect();
+    if ($modeHistorique) {
+        // En mode historique : grouper par date puis par fournisseur
+        foreach ($toutesLignes->groupBy(function($l) {
+            return $l->date_tournee->format('Y-m-d');
+        }) as $dateKey => $lignes) {
+            $lignesParCreneau[$dateKey] = $lignes->groupBy('fournisseur_name');
+        }
+    } else {
+        foreach ($toutesLignes->groupBy('slot') as $slot => $lignes) {
+            $lignesParCreneau[$slot] = $lignes->groupBy('fournisseur_name');
+        }
+    }
+
+    $lignesMatin     = $toutesLignes->whereIn('slot', ['matin','9h-11h','11h-12h'])->groupBy('fournisseur_name');
+    $lignesApresMidi = $toutesLignes->whereIn('slot', ['apres_midi','13h-14h','15h-16h','17h-18h'])->groupBy('fournisseur_name');
+
+    // Stats
+    $statsQuery = TourneeLine::query();
+    if ($modeHistorique) {
+        $statsQuery->whereBetween('date_tournee', [$dateFrom, $dateTo]);
+        if ($searchArticle !== '')
+            $statsQuery->where(function($q) use ($searchArticle) {
+                $q->where('article_code', 'like', '%' . $searchArticle . '%')
+                  ->orWhere('article_name', 'like', '%' . $searchArticle . '%');
+            });
+        if ($searchNumdoc !== '')
+            $statsQuery->where('source_numdoc', 'like', '%' . $searchNumdoc . '%');
+    } else {
+        $statsQuery->whereDate('date_tournee', $date);
+    }
     if ($filteredSiteId) $statsQuery->where('site_id', $filteredSiteId);
 
     $stats = [
@@ -62,12 +127,15 @@ class PlanningController extends Controller
         'recupere'      => (clone $statsQuery)->where('statut', 'recupere')->count(),
         'au_magasin'    => (clone $statsQuery)->where('statut', 'au_magasin')->count(),
         'probleme'      => (clone $statsQuery)->where('statut', 'probleme')->count(),
-        'non_assignees' => (clone $statsQuery)->whereNull('chauffeur_id')->whereNotIn('statut', ['recupere', 'au_magasin'])->count(),
+        'non_assignees' => (clone $statsQuery)->whereNull('chauffeur_id')
+                               ->whereNotIn('statut', ['recupere', 'au_magasin'])->count(),
     ];
 
     return view('planning.index', compact(
         'lignesMatin', 'lignesApresMidi', 'lignesParCreneau',
-        'chauffeurs', 'sites', 'date', 'stats', 'filteredSiteId'
+        'chauffeurs', 'sites', 'date', 'stats', 'filteredSiteId',
+        'modeHistorique', 'dateFrom', 'dateTo',
+        'searchArticle', 'searchNumdoc'
     ));
 }
 
