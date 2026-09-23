@@ -130,10 +130,10 @@
          FILTER PANEL
          ════════════════════════════════════════════════════════ --}}
     @php
-        $todayStr     = today()->format('Y-m-d');
-        $hierStr      = today()->subDay()->format('Y-m-d');
-        $weekFromStr  = today()->startOfWeek()->format('Y-m-d');
-        $monthFromStr = today()->startOfMonth()->format('Y-m-d');
+        $todayStr     = now()->format('Y-m-d');
+$hierStr      = now()->subDay()->format('Y-m-d');
+$weekFromStr  = now()->copy()->startOfWeek()->format('Y-m-d');
+$monthFromStr = now()->copy()->startOfMonth()->format('Y-m-d');
         $siteParam    = session('planning_site_id', '');
 
         $isToday  = !$modeHistorique && $date === $todayStr;
