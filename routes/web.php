@@ -87,6 +87,9 @@ Route::post('/planning/update-date', [PlanningController::class, 'updateDate'])-
 Route::delete('/planning/delete-line/{id}', [PlanningController::class, 'deleteLine'])->name('planning.delete_line');
 
 
+Route::post('/planning/basculer-retards', [PlanningController::class, 'basculerRetards'])->name('planning.basculer_retards');
+Route::get('/planning/retards-detail', [PlanningController::class, 'retardsDetail'])->name('planning.retards_detail');
+Route::post('/planning/basculer-une/{id}', [PlanningController::class, 'basculerUne'])->name('planning.basculer_une');
 
 
 // ══════════════════════════════════════════════════════════════

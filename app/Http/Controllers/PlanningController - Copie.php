@@ -28,7 +28,10 @@ class PlanningController extends Controller
     // ── Mode historique : activé si recherche article/numdoc ──
     $searchArticle = trim($request->input('search_article', ''));
     $searchNumdoc  = trim($request->input('search_numdoc', ''));
-    $modeHistorique = $searchArticle !== '' || $searchNumdoc !== '';
+    $modeHistorique = $searchArticle !== '' 
+    || $searchNumdoc !== '' 
+    || $request->filled('date_from') 
+    || $request->filled('date_to');
 
     $dateFrom = $request->input('date_from', $modeHistorique
         ? today()->subDays(30)->format('Y-m-d')
@@ -610,6 +613,158 @@ public function deleteLine($id)
     $line->delete();
     return response()->json(['success' => true]);
 }
+
+
+
+
+
+
+
+
+public function basculerRetards(Request $request)
+{
+    $lignesRetard = TourneeLine::whereIn('statut', ['en_attente', 'assigné'])
+    ->whereDate('date_tournee', '<', today())
+    ->whereDate('date_tournee', '>=', today()->subDays(7))
+    ->get();
+
+    $now   = \Carbon\Carbon::now();
+    $count = 0;
+
+    // Grouper par site pour appliquer les créneaux de chaque société
+    foreach ($lignesRetard->groupBy('site_id') as $siteId => $lignes) {
+
+        $parametre = \App\Models\TourneeParametre::where('site_id', $siteId)->first();
+
+        // Créneaux du site, sinon fallback générique
+        $creneaux = $parametre ? ($parametre->creneaux ?? []) : [];
+
+        // Trouver le prochain créneau pas encore passé aujourd'hui
+        $prochainSlot = null;
+        $dateCible    = today()->format('Y-m-d');
+
+        foreach ($creneaux as $creneau) {
+            // Chaque créneau a une structure ['label' => '9h-11h', 'heure_limite' => '11:00']
+            // ou on extrait l'heure de fin du label
+            $label       = $creneau['label'] ?? '';
+            $heureLimite = $creneau['heure_limite']
+                ?? $creneau['end']
+                ?? null;
+
+            // Si pas d'heure_limite dans la config → extraire du label (ex: "9h-11h" → 11)
+            if (!$heureLimite && preg_match('/-(\d+)h/', $label, $m)) {
+                $heureLimite = $m[1] . ':00';
+            }
+
+            if ($heureLimite) {
+                $heureFinCreneau = \Carbon\Carbon::parse(
+                    today()->format('Y-m-d') . ' ' . $heureLimite
+                );
+                if ($now->lt($heureFinCreneau)) {
+                    $prochainSlot = $label;
+                    break;
+                }
+            }
+        }
+
+        // Si tous créneaux passés → demain, premier créneau du site
+        if (!$prochainSlot) {
+            $dateCible    = today()->addDay()->format('Y-m-d');
+            $prochainSlot = isset($creneaux[0]['label'])
+                ? $creneaux[0]['label']
+                : '9h-11h';
+        }
+
+        foreach ($lignes as $ligne) {
+            $ligne->update([
+                'date_tournee' => $dateCible,
+                'slot'         => $prochainSlot,
+                'statut'       => 'en_attente',
+                'chauffeur_id' => null,
+            ]);
+            $count++;
+        }
+    }
+
+    $dateCibleLabel = \Carbon\Carbon::parse($dateCible ?? today())->format('d/m/Y');
+
+    return response()->json([
+        'success' => true,
+        'count'   => $count,
+        'date'    => $dateCibleLabel,
+    ]);
+}
+
+
+// PlanningController
+public function retardsDetail()
+{
+    $lignes = TourneeLine::with(['site', 'fournisseur'])
+        ->whereIn('statut', ['en_attente', 'assigné'])
+        ->whereDate('date_tournee', '<', today())
+        ->whereDate('date_tournee', '>=', today()->subDays(7))
+        ->orderBy('date_tournee')
+        ->get()
+        ->map(function($l) {
+            return [
+                'id'           => $l->id,
+                'date'         => $l->date_tournee->format('d/m/Y'),
+                'article_code' => $l->article_code,
+                'article_name' => $l->article_name,
+                'fournisseur'  => optional($l->fournisseur)->name ?? $l->fournisseur_name,
+                'site'         => optional($l->site)->name,
+                'statut'       => $l->statut,
+                'slot'         => $l->slot,
+            ];
+        });
+
+    return response()->json($lignes);
+}
+
+// PlanningController
+public function basculerUne($id)
+{
+    $ligne = TourneeLine::findOrFail($id);
+    $now   = \Carbon\Carbon::now();
+
+    $parametre    = \App\Models\TourneeParametre::where('site_id', $ligne->site_id)->first();
+    $creneaux     = $parametre ? ($parametre->creneaux ?? []) : [];
+    $prochainSlot = null;
+    $dateCible    = today()->format('Y-m-d');
+
+    foreach ($creneaux as $creneau) {
+        $label = $creneau['label'] ?? '';
+        $heureLimite = $creneau['heure_limite'] ?? $creneau['end'] ?? null;
+        if (!$heureLimite && preg_match('/-(\d+)h/', $label, $m)) {
+            $heureLimite = $m[1] . ':00';
+        }
+        if ($heureLimite) {
+            $fin = \Carbon\Carbon::parse(today()->format('Y-m-d') . ' ' . $heureLimite);
+            if ($now->lt($fin)) { $prochainSlot = $label; break; }
+        }
+    }
+
+    if (!$prochainSlot) {
+        $dateCible    = today()->addDay()->format('Y-m-d');
+        $prochainSlot = isset($creneaux[0]['label']) ? $creneaux[0]['label'] : '9h-11h';
+    }
+
+    $ligne->update([
+        'date_tournee' => $dateCible,
+        'slot'         => $prochainSlot,
+        'statut'       => 'en_attente',
+        'chauffeur_id' => null,
+    ]);
+
+    return response()->json([
+        'success' => true,
+        'slot'    => $prochainSlot,
+        'date'    => \Carbon\Carbon::parse($dateCible)->format('d/m/Y'),
+    ]);
+}
+
+
+
 
 
 }

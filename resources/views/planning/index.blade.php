@@ -309,6 +309,105 @@ $monthFromStr = now()->copy()->startOfMonth()->format('Y-m-d');
         <div class="col"><div class="stat-card" style="background:#dc3545;"><h3>{{ $stats['probleme'] }}</h3><p>Problèmes</p></div></div>
     </div>
 
+
+
+
+
+
+    @php
+    $lignesRetard = \App\Models\TourneeLine::whereIn('statut', ['en_attente', 'assigné'])
+    ->whereDate('date_tournee', '<', today())
+    ->whereDate('date_tournee', '>=', today()->subDays(7))
+    ->count();
+@endphp
+
+
+
+
+@if($lignesRetard > 0)
+<div id="retard-banner" style="
+    background:linear-gradient(135deg,#7f1d1d,#dc2626);
+    border-radius:12px; padding:14px 20px; margin-bottom:16px;
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    box-shadow:0 4px 16px rgba(220,38,38,0.25);">
+    <div style="color:white;">
+        <div style="font-weight:700;font-size:0.95rem;">
+            ⚠️ {{ $lignesRetard }} pièce(s) non récupérée(s) — 7 derniers jours
+        </div>
+        <div style="font-size:0.78rem;opacity:0.85;margin-top:3px;">
+            Pièces encore en attente ou assignées dont la date est dépassée.
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        <button onclick="voirRetards()"
+                style="background:rgba(255,255,255,0.15);color:white;border:1.5px solid rgba(255,255,255,0.4);
+                       border-radius:8px;padding:7px 14px;font-size:0.78rem;font-weight:600;cursor:pointer;">
+            <i class="fas fa-eye me-1"></i> Voir le détail
+        </button>
+        <button onclick="basculerRetards()" id="btn-basculer"
+                style="background:white;color:#dc2626;border:none;border-radius:8px;
+                       padding:8px 18px;font-size:0.82rem;font-weight:700;cursor:pointer;">
+            <i class="fas fa-forward me-1"></i> Basculer sur prochain créneau
+        </button>
+    </div>
+</div>
+
+{{-- Popup détail --}}
+<div id="retard-popup" style="
+    display:none; position:fixed; top:0; left:0; right:0; bottom:0;
+    background:rgba(0,0,0,0.5); z-index:9998; align-items:center; justify-content:center;">
+    <div style="background:white;border-radius:16px;width:700px;max-width:95vw;
+                max-height:80vh;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+        <div style="background:linear-gradient(135deg,#7f1d1d,#dc2626);padding:16px 24px;
+                    display:flex;justify-content:space-between;align-items:center;">
+            <span style="color:white;font-weight:700;font-size:0.95rem;">
+                ⚠️ Pièces non récupérées — 7 derniers jours
+            </span>
+            <button onclick="fermerPopup()"
+                    style="background:none;border:none;color:white;font-size:1.2rem;cursor:pointer;">✕</button>
+        </div>
+        <div style="overflow-y:auto;max-height:calc(80vh - 130px);">
+            <table style="width:100%;border-collapse:collapse;font-size:0.8rem;">
+                <thead>
+                    <tr style="background:#f8faff;position:sticky;top:0;">
+                        <th style="padding:10px 14px;text-align:left;color:#6b7a99;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1.5px solid #e2e8f0;">Date</th>
+                        <th style="padding:10px 14px;text-align:left;color:#6b7a99;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1.5px solid #e2e8f0;">Référence</th>
+                        <th style="padding:10px 14px;text-align:left;color:#6b7a99;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1.5px solid #e2e8f0;">Fournisseur</th>
+                        <th style="padding:10px 14px;text-align:left;color:#6b7a99;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1.5px solid #e2e8f0;">Magasin</th>
+                        <th style="padding:10px 14px;text-align:left;color:#6b7a99;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1.5px solid #e2e8f0;">Statut</th>
+                        <th style="padding:10px 14px;text-align:left;color:#6b7a99;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1.5px solid #e2e8f0;">Créneau</th>
+                        <th style="padding:10px 14px;text-align:left;color:#6b7a99;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1.5px solid #e2e8f0;">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="retard-tbody">
+                    <tr><td colspan="6" style="text-align:center;padding:24px;color:#9bacc4;">
+                        <i class="fas fa-spinner fa-spin me-2"></i> Chargement...
+                    </td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="padding:14px 24px;border-top:1.5px solid #e2e8f0;display:flex;justify-content:flex-end;gap:10px;background:white;">
+            <button onclick="fermerPopup()"
+                    style="background:none;border:1.5px solid #e2e8f0;color:#6b7a99;border-radius:8px;
+                           padding:7px 16px;font-size:0.8rem;font-weight:600;cursor:pointer;">
+                Fermer
+            </button>
+            <button onclick="basculerRetards()"
+                    style="background:linear-gradient(135deg,#dc2626,#7f1d1d);color:white;border:none;
+                           border-radius:8px;padding:8px 20px;font-size:0.8rem;font-weight:700;cursor:pointer;">
+                <i class="fas fa-forward me-1"></i> Tout basculer sur prochain créneau
+            </button>
+        </div>
+    </div>
+</div>
+@endif
+
+
+
+
+
+
+
     {{-- ── RECHERCHE TEMPS RÉEL ────────────────────────────────── --}}
     <div class="search-bar">
         <span class="search-label"><i class="fas fa-bolt me-1 text-warning"></i> Recherche rapide</span>
@@ -473,6 +572,215 @@ function deleteLine(lineId, btn) {
         else alert('Erreur suppression');
     });
 }
+
+
+
+
+
+
+function basculerRetards() {
+    if (!confirm('Basculer toutes les pièces en retard sur le prochain créneau disponible ?')) return;
+
+    var btn = document.getElementById('btn-basculer');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> En cours...';
+    btn.disabled = true;
+
+    fetch('{{ route("planning.basculer_retards") }}', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF }
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            document.getElementById('retard-banner').remove();
+            showToast(d.count + ' pièce(s) basculée(s) sur le prochain créneau disponible', 'success');
+            setTimeout(() => location.reload(), 2000);
+        }
+    });
+}
+
+
+function voirRetards() {
+    var popup = document.getElementById('retard-popup');
+    popup.style.display = 'flex';
+
+    fetch('/planning/retards-detail', {
+        headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF }
+    })
+    .then(r => r.json())
+    .then(function(lignes) {
+        var colors = { 'en_attente': '#f3f4f6', 'assigné': '#e0f2fe' };
+        var html = '';
+        lignes.forEach(function(l) {
+            html += '<tr id="retard-row-' + l.id + '" style="border-bottom:1px solid #f0f4f8;">'
+                + '<td style="padding:9px 14px;color:#dc2626;font-weight:600;">' + l.date + '</td>'
+                + '<td style="padding:9px 14px;font-family:monospace;color:#0040c0;background:#eef4ff;">' + l.article_code + '</td>'
+                + '<td style="padding:9px 14px;">' + (l.fournisseur || '—') + '</td>'
+                + '<td style="padding:9px 14px;">' + (l.site || '—') + '</td>'
+                + '<td style="padding:9px 14px;"><span style="background:' + (colors[l.statut] || '#f3f4f6') + ';padding:2px 8px;border-radius:6px;font-size:0.72rem;font-weight:600;">' + l.statut + '</span></td>'
+                + '<td style="padding:9px 14px;color:#6b7a99;">' + l.slot + '</td>'
+                + '<td style="padding:9px 14px;">'
++ '<div style="display:flex;gap:5px;flex-wrap:wrap;">'
++ '<button onclick="basculerUne(' + l.id + ', this)" '
++ 'style="background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;border-radius:6px;'
++ 'font-size:0.7rem;font-weight:600;padding:3px 8px;cursor:pointer;white-space:nowrap;">'
++ '<i class="fas fa-forward"></i> Basculer'
++ '</button>'
++ '<button onclick="marquerRecupere(' + l.id + ', this)" '
++ 'style="background:#d1fae5;border:1px solid #6ee7b7;color:#065f46;border-radius:6px;'
++ 'font-size:0.7rem;font-weight:600;padding:3px 8px;cursor:pointer;white-space:nowrap;">'
++ '<i class="fas fa-check"></i> Récupéré'
++ '</button>'
++ '<button onclick="retirerLigne(' + l.id + ', this)" '
++ 'style="background:#f3f4f6;border:1px solid #d1d5db;color:#6b7280;border-radius:6px;'
++ 'font-size:0.7rem;font-weight:600;padding:3px 8px;cursor:pointer;white-space:nowrap;">'
++ '<i class="fas fa-trash"></i> Retirer'
++ '</button>'
++ '</div>'
++ '</td>'
+                + '</tr>';
+        });
+        document.getElementById('retard-tbody').innerHTML = html
+            || '<tr><td colspan="7" style="text-align:center;padding:24px;color:#9bacc4;">Aucune pièce</td></tr>';
+    });
+}
+
+
+
+
+
+function fermerPopup() {
+    document.getElementById('retard-popup').style.display = 'none';
+    if (window._retardModified) {
+        window._retardModified = false;
+        location.reload();
+    }
+}
+
+
+
+// Fermer au clic sur l'overlay
+document.getElementById('retard-popup').addEventListener('click', function(e) {
+    if (e.target === this) fermerPopup();
+});
+
+function marquerRecupere(lineId, btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+    fetch('/planning/statut', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
+        body: JSON.stringify({ line_id: lineId, statut: 'recupere' })
+    })
+    .then(r => r.json())
+    .then(function(d) {
+        if (d.success) {
+            var row = document.getElementById('retard-row-' + lineId);
+            if (row) { row.style.background = '#d1fae5'; row.style.opacity = '0.5'; }
+            btn.innerHTML = '✅ Récupéré';
+            var countEl = document.querySelector('[data-retard-count]');
+            if (countEl) {
+                var n = parseInt(countEl.textContent) - 1;
+                countEl.textContent = n;
+                if (n <= 0) {
+                    var banner = document.getElementById('retard-banner');
+                    if (banner) banner.remove();
+                }
+            }
+            window._retardModified = true;
+        } else {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check"></i> Récupéré';
+        }
+    });
+}
+
+function retirerLigne(lineId, btn) {
+    if (!confirm('Supprimer définitivement cette ligne ?')) return;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+    fetch('/planning/delete-line/' + lineId, {
+        method: 'DELETE',
+        credentials: 'same-origin',
+        headers: { 'X-CSRF-TOKEN': CSRF }
+    })
+    .then(r => r.json())
+    .then(function(d) {
+        if (d.success) {
+            var row = document.getElementById('retard-row-' + lineId);
+            if (row) row.remove();
+            var countEl = document.querySelector('[data-retard-count]');
+            if (countEl) {
+                var n = parseInt(countEl.textContent) - 1;
+                countEl.textContent = n;
+                if (n <= 0) {
+                    var banner = document.getElementById('retard-banner');
+                    if (banner) banner.remove();
+                }
+            }
+            window._retardModified = true;
+        } else {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-trash"></i> Retirer';
+        }
+    });
+}
+
+
+
+
+
+
+
+function basculerUne(lineId, btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+    fetch('/planning/basculer-une/' + lineId, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF }
+    })
+    .then(r => r.json())
+    .then(function(d) {
+        if (d.success) {
+            var row = document.getElementById('retard-row-' + lineId);
+            if (row) {
+                row.style.background = '#d1fae5';
+                row.style.opacity    = '0.5';
+            }
+            btn.innerHTML = '✅ Basculé';
+
+            // Décrémenter bannière
+            var countEl = document.querySelector('[data-retard-count]');
+            if (countEl) {
+                var n = parseInt(countEl.textContent) - 1;
+                countEl.textContent = n;
+                if (n <= 0) {
+                    var banner = document.getElementById('retard-banner');
+                    if (banner) banner.remove();
+                }
+            }
+
+            // Flag pour recharger à la fermeture
+            window._retardModified = true;
+        } else {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-forward"></i> Basculer';
+        }
+    });
+}
+
+
+
+
+
+
+
 
 // ── Recherche temps réel ──────────────────────────────────────
 var searchPiece   = document.getElementById('search-piece');
