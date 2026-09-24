@@ -317,7 +317,7 @@ $monthFromStr = now()->copy()->startOfMonth()->format('Y-m-d');
     @php
     $lignesRetard = \App\Models\TourneeLine::whereIn('statut', ['en_attente', 'assigné'])
     ->whereDate('date_tournee', '<', today())
-    ->whereDate('date_tournee', '>=', today()->subDays(7))
+    ->whereDate('date_tournee', '>=', today()->subDays(2))
     ->count();
 @endphp
 
@@ -332,7 +332,7 @@ $monthFromStr = now()->copy()->startOfMonth()->format('Y-m-d');
     box-shadow:0 4px 16px rgba(220,38,38,0.25);">
     <div style="color:white;">
         <div style="font-weight:700;font-size:0.95rem;">
-            ⚠️ {{ $lignesRetard }} pièce(s) non récupérée(s) — 7 derniers jours
+            ⚠️ {{ $lignesRetard }} pièce(s) non récupérée(s) — 2 derniers jours
         </div>
         <div style="font-size:0.78rem;opacity:0.85;margin-top:3px;">
             Pièces encore en attente ou assignées dont la date est dépassée.
