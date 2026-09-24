@@ -625,7 +625,7 @@ public function basculerRetards(Request $request)
 {
     $lignesRetard = TourneeLine::whereIn('statut', ['en_attente', 'assigné'])
     ->whereDate('date_tournee', '<', today())
-    ->whereDate('date_tournee', '>=', today()->subDays(7))
+    ->whereDate('date_tournee', '>=', today()->subDays(2))
     ->get();
 
     $now   = \Carbon\Carbon::now();
@@ -702,7 +702,7 @@ public function retardsDetail()
     $lignes = TourneeLine::with(['site', 'fournisseur'])
         ->whereIn('statut', ['en_attente', 'assigné'])
         ->whereDate('date_tournee', '<', today())
-        ->whereDate('date_tournee', '>=', today()->subDays(7))
+        ->whereDate('date_tournee', '>=', today()->subDays(2))
         ->orderBy('date_tournee')
         ->get()
         ->map(function($l) {

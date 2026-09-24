@@ -623,9 +623,14 @@ public function deleteLine($id)
 
 public function basculerRetards(Request $request)
 {
-    $lignesRetard = TourneeLine::whereIn('statut', ['en_attente', 'assigné'])
+    // Dans basculerRetards()
+$lignesRetard = TourneeLine::whereIn('statut', ['en_attente', 'assigné'])
     ->whereDate('date_tournee', '<', today())
     ->whereDate('date_tournee', '>=', today()->subDays(2))
+    ->when(session('planning_site_id'), function($q) {
+        $q->where('site_id', session('planning_site_id'));
+    })
+    ->with('site')
     ->get();
 
     $now   = \Carbon\Carbon::now();
@@ -699,24 +704,30 @@ public function basculerRetards(Request $request)
 // PlanningController
 public function retardsDetail()
 {
-    $lignes = TourneeLine::with(['site', 'fournisseur'])
+    $filteredSiteId = session('planning_site_id');
+
+    $query = TourneeLine::with(['site', 'fournisseur'])
         ->whereIn('statut', ['en_attente', 'assigné'])
         ->whereDate('date_tournee', '<', today())
         ->whereDate('date_tournee', '>=', today()->subDays(2))
-        ->orderBy('date_tournee')
-        ->get()
-        ->map(function($l) {
-            return [
-                'id'           => $l->id,
-                'date'         => $l->date_tournee->format('d/m/Y'),
-                'article_code' => $l->article_code,
-                'article_name' => $l->article_name,
-                'fournisseur'  => optional($l->fournisseur)->name ?? $l->fournisseur_name,
-                'site'         => optional($l->site)->name,
-                'statut'       => $l->statut,
-                'slot'         => $l->slot,
-            ];
-        });
+        ->orderBy('date_tournee');
+
+    if ($filteredSiteId) {
+        $query->where('site_id', $filteredSiteId);
+    }
+
+    $lignes = $query->get()->map(function($l) {
+        return [
+            'id'           => $l->id,
+            'date'         => $l->date_tournee->format('d/m/Y'),
+            'article_code' => $l->article_code,
+            'article_name' => $l->article_name,
+            'fournisseur'  => optional($l->fournisseur)->name ?? $l->fournisseur_name,
+            'site'         => optional($l->site)->name,
+            'statut'       => $l->statut,
+            'slot'         => $l->slot,
+        ];
+    });
 
     return response()->json($lignes);
 }

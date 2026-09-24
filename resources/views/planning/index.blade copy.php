@@ -317,7 +317,7 @@ $monthFromStr = now()->copy()->startOfMonth()->format('Y-m-d');
     @php
     $lignesRetard = \App\Models\TourneeLine::whereIn('statut', ['en_attente', 'assigné'])
     ->whereDate('date_tournee', '<', today())
-    ->whereDate('date_tournee', '>=', today()->subDays(7))
+    ->whereDate('date_tournee', '>=', today()->subDays(2))
     ->count();
 @endphp
 
@@ -332,7 +332,7 @@ $monthFromStr = now()->copy()->startOfMonth()->format('Y-m-d');
     box-shadow:0 4px 16px rgba(220,38,38,0.25);">
     <div style="color:white;">
         <div style="font-weight:700;font-size:0.95rem;">
-            ⚠️ {{ $lignesRetard }} pièce(s) non récupérée(s) — 7 derniers jours
+            ⚠️ {{ $lignesRetard }} pièce(s) non récupérée(s) — 2 derniers jours
         </div>
         <div style="font-size:0.78rem;opacity:0.85;margin-top:3px;">
             Pièces encore en attente ou assignées dont la date est dépassée.
@@ -347,7 +347,7 @@ $monthFromStr = now()->copy()->startOfMonth()->format('Y-m-d');
         <button onclick="basculerRetards()" id="btn-basculer"
                 style="background:white;color:#dc2626;border:none;border-radius:8px;
                        padding:8px 18px;font-size:0.82rem;font-weight:700;cursor:pointer;">
-            <i class="fas fa-forward me-1"></i> Basculer sur prochain créneau
+            <i class="fas fa-forward me-1"></i> Tout Basculer sur prochain créneau
         </button>
     </div>
 </div>
@@ -361,7 +361,7 @@ $monthFromStr = now()->copy()->startOfMonth()->format('Y-m-d');
         <div style="background:linear-gradient(135deg,#7f1d1d,#dc2626);padding:16px 24px;
                     display:flex;justify-content:space-between;align-items:center;">
             <span style="color:white;font-weight:700;font-size:0.95rem;">
-                ⚠️ Pièces non récupérées — 7 derniers jours
+                ⚠️ Pièces non récupérées — 2 derniers jours
             </span>
             <button onclick="fermerPopup()"
                     style="background:none;border:none;color:white;font-size:1.2rem;cursor:pointer;">✕</button>
@@ -621,12 +621,24 @@ function voirRetards() {
                 + '<td style="padding:9px 14px;"><span style="background:' + (colors[l.statut] || '#f3f4f6') + ';padding:2px 8px;border-radius:6px;font-size:0.72rem;font-weight:600;">' + l.statut + '</span></td>'
                 + '<td style="padding:9px 14px;color:#6b7a99;">' + l.slot + '</td>'
                 + '<td style="padding:9px 14px;">'
-                + '<button onclick="basculerUne(' + l.id + ', this)" '
-                + 'style="background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;border-radius:6px;'
-                + 'font-size:0.7rem;font-weight:600;padding:3px 8px;cursor:pointer;white-space:nowrap;">'
-                + '<i class="fas fa-forward"></i> Basculer'
-                + '</button>'
-                + '</td>'
++ '<div style="display:flex;gap:5px;flex-wrap:wrap;">'
++ '<button onclick="basculerUne(' + l.id + ', this)" '
++ 'style="background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;border-radius:6px;'
++ 'font-size:0.7rem;font-weight:600;padding:3px 8px;cursor:pointer;white-space:nowrap;">'
++ '<i class="fas fa-forward"></i> Basculer'
++ '</button>'
++ '<button onclick="marquerRecupere(' + l.id + ', this)" '
++ 'style="background:#d1fae5;border:1px solid #6ee7b7;color:#065f46;border-radius:6px;'
++ 'font-size:0.7rem;font-weight:600;padding:3px 8px;cursor:pointer;white-space:nowrap;">'
++ '<i class="fas fa-check"></i> Récupéré'
++ '</button>'
++ '<button onclick="retirerLigne(' + l.id + ', this)" '
++ 'style="background:#f3f4f6;border:1px solid #d1d5db;color:#6b7280;border-radius:6px;'
++ 'font-size:0.7rem;font-weight:600;padding:3px 8px;cursor:pointer;white-space:nowrap;">'
++ '<i class="fas fa-trash"></i> Retirer'
++ '</button>'
++ '</div>'
++ '</td>'
                 + '</tr>';
         });
         document.getElementById('retard-tbody').innerHTML = html
@@ -635,14 +647,93 @@ function voirRetards() {
 }
 
 
+
+
+
 function fermerPopup() {
     document.getElementById('retard-popup').style.display = 'none';
+    if (window._retardModified) {
+        window._retardModified = false;
+        location.reload();
+    }
 }
 
-// Fermer popup au clic sur l'overlay (fond sombre)
+
+
+// Fermer au clic sur l'overlay
 document.getElementById('retard-popup').addEventListener('click', function(e) {
     if (e.target === this) fermerPopup();
 });
+
+function marquerRecupere(lineId, btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+    fetch('/planning/statut', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
+        body: JSON.stringify({ line_id: lineId, statut: 'recupere' })
+    })
+    .then(r => r.json())
+    .then(function(d) {
+        if (d.success) {
+            var row = document.getElementById('retard-row-' + lineId);
+            if (row) { row.style.background = '#d1fae5'; row.style.opacity = '0.5'; }
+            btn.innerHTML = '✅ Récupéré';
+            var countEl = document.querySelector('[data-retard-count]');
+            if (countEl) {
+                var n = parseInt(countEl.textContent) - 1;
+                countEl.textContent = n;
+                if (n <= 0) {
+                    var banner = document.getElementById('retard-banner');
+                    if (banner) banner.remove();
+                }
+            }
+            window._retardModified = true;
+        } else {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check"></i> Récupéré';
+        }
+    });
+}
+
+function retirerLigne(lineId, btn) {
+    if (!confirm('Supprimer définitivement cette ligne ?')) return;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+    fetch('/planning/delete-line/' + lineId, {
+        method: 'DELETE',
+        credentials: 'same-origin',
+        headers: { 'X-CSRF-TOKEN': CSRF }
+    })
+    .then(r => r.json())
+    .then(function(d) {
+        if (d.success) {
+            var row = document.getElementById('retard-row-' + lineId);
+            if (row) row.remove();
+            var countEl = document.querySelector('[data-retard-count]');
+            if (countEl) {
+                var n = parseInt(countEl.textContent) - 1;
+                countEl.textContent = n;
+                if (n <= 0) {
+                    var banner = document.getElementById('retard-banner');
+                    if (banner) banner.remove();
+                }
+            }
+            window._retardModified = true;
+        } else {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-trash"></i> Retirer';
+        }
+    });
+}
+
+
+
+
+
 
 
 function basculerUne(lineId, btn) {
@@ -657,20 +748,26 @@ function basculerUne(lineId, btn) {
     .then(r => r.json())
     .then(function(d) {
         if (d.success) {
-            var row = btn.closest('tr');
-            row.style.background = '#d1fae5';
-            row.style.opacity    = '0.5';
+            var row = document.getElementById('retard-row-' + lineId);
+            if (row) {
+                row.style.background = '#d1fae5';
+                row.style.opacity    = '0.5';
+            }
             btn.innerHTML = '✅ Basculé';
-            // Mettre à jour le compteur bannière
-            var banner = document.getElementById('retard-banner');
-            if (banner) {
-                var countEl = banner.querySelector('[data-retard-count]');
-                if (countEl) {
-                    var n = parseInt(countEl.textContent) - 1;
-                    countEl.textContent = n;
-                    if (n === 0) banner.remove();
+
+            // Décrémenter bannière
+            var countEl = document.querySelector('[data-retard-count]');
+            if (countEl) {
+                var n = parseInt(countEl.textContent) - 1;
+                countEl.textContent = n;
+                if (n <= 0) {
+                    var banner = document.getElementById('retard-banner');
+                    if (banner) banner.remove();
                 }
             }
+
+            // Flag pour recharger à la fermeture
+            window._retardModified = true;
         } else {
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-forward"></i> Basculer';

@@ -318,6 +318,9 @@ $monthFromStr = now()->copy()->startOfMonth()->format('Y-m-d');
     $lignesRetard = \App\Models\TourneeLine::whereIn('statut', ['en_attente', 'assigné'])
     ->whereDate('date_tournee', '<', today())
     ->whereDate('date_tournee', '>=', today()->subDays(2))
+    ->when(session('planning_site_id'), function($q) {
+        $q->where('site_id', session('planning_site_id'));
+    })
     ->count();
 @endphp
 
