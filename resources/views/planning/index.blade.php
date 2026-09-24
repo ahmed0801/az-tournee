@@ -347,7 +347,7 @@ $monthFromStr = now()->copy()->startOfMonth()->format('Y-m-d');
         <button onclick="basculerRetards()" id="btn-basculer"
                 style="background:white;color:#dc2626;border:none;border-radius:8px;
                        padding:8px 18px;font-size:0.82rem;font-weight:700;cursor:pointer;">
-            <i class="fas fa-forward me-1"></i> Basculer sur prochain créneau
+            <i class="fas fa-forward me-1"></i> Tout Basculer sur prochain créneau
         </button>
     </div>
 </div>
@@ -361,7 +361,7 @@ $monthFromStr = now()->copy()->startOfMonth()->format('Y-m-d');
         <div style="background:linear-gradient(135deg,#7f1d1d,#dc2626);padding:16px 24px;
                     display:flex;justify-content:space-between;align-items:center;">
             <span style="color:white;font-weight:700;font-size:0.95rem;">
-                ⚠️ Pièces non récupérées — 7 derniers jours
+                ⚠️ Pièces non récupérées — 2 derniers jours
             </span>
             <button onclick="fermerPopup()"
                     style="background:none;border:none;color:white;font-size:1.2rem;cursor:pointer;">✕</button>
