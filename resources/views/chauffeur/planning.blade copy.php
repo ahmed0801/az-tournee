@@ -663,20 +663,12 @@ function submitScan(lineId) {
             feedback.className = 'scan-feedback success';
             feedback.textContent = d.message;
             setTimeout(() => markRecuperee(lineId), 1200);
-        } else if (d.barcode_scanned) {
-            // Code inconnu — proposer association
-            feedback.className = 'scan-feedback warning';
-            feedback.innerHTML = d.message +
-                `<div class="mt-2 d-flex gap-2">
-                    <button class="btn-validate-scan" onclick="confirmScan(${lineId}, '${d.barcode_scanned}')">
-                        ✅ Oui, associer ce code
-                    </button>
-                    <button style="flex:0.4; background:#2d4a8a; color:#80b0ff; border:none; border-radius:6px; padding:8px; font-size:0.75rem; cursor:pointer;"
-                            onclick="document.getElementById('scan-zone-${lineId}').classList.remove('active'); document.getElementById('btn-scan-${lineId}').classList.remove('active');">
-                        Non
-                    </button>
-                </div>`;
-        } else {
+        }  else if (d.barcode_scanned) {
+    // Code inconnu — associer directement sans confirmation
+    feedback.className = 'scan-feedback warning';
+    feedback.textContent = '🔄 Code inconnu, association en cours...';
+    confirmScan(lineId, d.barcode_scanned);
+} else {
             feedback.className = 'scan-feedback error';
             feedback.textContent = '❌ Erreur : ' + (d.message || 'Réessayez');
         }
@@ -735,11 +727,16 @@ function markRecuperee(lineId) {
     if (dot) { dot.className = 'status-dot recupere'; }
     const btns = card.querySelector('.action-btns');
     if (btns) {
-        btns.innerHTML = '<div class="result-recupere"><i class="fas fa-check-circle"></i> Récupérée</div>' +
-            '<button id="btn-livre-' + lineId + '" onclick="livreClient(' + lineId + ')" ' +
-            'style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:white;' +
-            'border:1px solid #a78bfa;border-radius:6px;padding:4px 10px;' +
-            'font-size:0.72rem;font-weight:700;cursor:pointer;margin-top:4px;">&#128682; Confirmer la Livraison au client</button>';
+        
+    btns.innerHTML = '<div class="result-recupere"><i class="fas fa-check-circle"></i> Récupérée</div>' +
+    '<button id="btn-livre-' + lineId + '" onclick="livreClient(' + lineId + ')" ' +
+    'style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:white;' +
+    'border:1px solid #a78bfa;border-radius:6px;padding:4px 10px;' +
+    'font-size:0.72rem;font-weight:700;cursor:pointer;margin-top:4px;">&#128682; Confirmer la Livraison au client</button>' +
+    '<button onclick="annulerScan(' + lineId + ')" ' +
+    'style="background:rgba(220,53,69,0.15);color:#ff8888;border:1px solid rgba(220,53,69,0.3);' +
+    'border-radius:6px;padding:4px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;margin-top:4px;">↩ Annuler</button>';
+
     }
     const zone = document.getElementById('scan-zone-' + lineId);
     if (zone) zone.classList.remove('active');
@@ -955,6 +952,39 @@ function livreClient(lineId) {
     .catch(() => alert('Erreur réseau'))
     .finally(() => {
         if (btn) btn.disabled = false;
+    });
+}
+
+
+
+function annulerScan(lineId) {
+    if (!confirm('Annuler le scan et remettre en attente ?')) return;
+
+    fetch('{{ route("planning.statut") }}', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
+        body: JSON.stringify({ line_id: lineId, statut: 'en_attente' })
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            const card = document.getElementById('article-card-' + lineId);
+            if (card) {
+                card.classList.remove('recupere');
+                const dot = card.querySelector('.status-dot');
+                if (dot) dot.className = 'status-dot en_attente';
+                const btns = card.querySelector('.action-btns');
+                if (btns) {
+                    btns.innerHTML =
+                        '<button class="btn-scan" id="btn-scan-' + lineId + '" onclick="toggleScan(' + lineId + ')">' +
+                        '<i class="fas fa-barcode me-1"></i>Scanner</button>' +
+                        '<button class="btn-done" onclick="markDone(' + lineId + ')">✓</button>' +
+                        '<button class="btn-probleme" onclick="openProbleme(' + lineId + ', \'\', \'\')">⚠</button>';
+                }
+                updateGroupCounter(card);
+            }
+        }
     });
 }
 </script>

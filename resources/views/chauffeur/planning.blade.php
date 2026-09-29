@@ -7,592 +7,698 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-
-        body {
-            background: #0f1923;
-            color: #e8ecf0;
-            font-family: 'Segoe UI', sans-serif;
-            padding-bottom: 90px;
-            margin: 0;
+        *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        :root {
+            --bg:     #F2F5FF;
+            --white:  #FFFFFF;
+            --navy:   #1E2D4A;
+            --blue:   #3B82F6;
+            --mint:   #10B981;
+            --amber:  #F59E0B;
+            --red:    #EF4444;
+            --purple: #7C3AED;
+            --text:   #1A2B4A;
+            --sub:    #6B7A99;
+            --border: #E2E8F0;
+            --shadow: 0 2px 12px rgba(30,45,74,0.08);
         }
+        body { background:var(--bg); color:var(--text); font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif; margin:0; padding-bottom:110px; }
 
-        /* ── Top bar ─────────────────────────────────── */
+        /* ══════════════════ TOP BAR ══════════════════ */
         .top-bar {
-            background: linear-gradient(135deg, #1a2b4a, #2d4a8a);
-            padding: 12px 16px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+            background: linear-gradient(135deg, #1E2D4A 0%, #2D4A8A 100%);
+            padding: 14px 16px 10px;
+            position: sticky; top: 0; z-index: 500;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
         }
-        .top-bar h5 { margin: 0; font-size: 0.95rem; font-weight: 700; }
-        .stats-bar { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
-        .stat-pill {
-            background: rgba(255,255,255,0.12);
-            border-radius: 20px;
-            padding: 3px 10px;
-            font-size: 0.72rem;
-            font-weight: 600;
+        .top-row1 { display:flex; justify-content:space-between; align-items:center; }
+        .driver-info h1 { color:white; font-size:1.05rem; font-weight:800; margin:0; }
+        .driver-info span { color:rgba(255,255,255,0.5); font-size:0.72rem; }
+        .top-btns { display:flex; gap:6px; }
+        .tbtn {
+            background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.18);
+            color:white; border-radius:8px; padding:7px 10px;
+            font-size:0.72rem; font-weight:600; cursor:pointer;
+            display:flex; align-items:center; gap:4px; text-decoration:none;
+            transition:background 0.15s;
         }
-        .stat-pill.green { background: rgba(40,167,69,0.25); color: #7fff8c; }
-        .stat-pill.orange { background: rgba(255,193,7,0.25); color: #ffe566; }
-        .stat-pill.red { background: rgba(220,53,69,0.25); color: #ff8888; }
+        .tbtn:hover { background:rgba(255,255,255,0.2); color:white; }
+        .tbtn.red { background:rgba(239,68,68,0.25); border-color:rgba(239,68,68,0.35); }
 
-        /* ── Slot header ─────────────────────────────── */
-        .slot-header {
-            padding: 10px 16px;
-            margin: 10px 0 4px;
-            border-left: 4px solid #ffc107;
-            background: rgba(255,193,7,0.07);
-            color: #ffc107;
-            font-weight: 700;
-            font-size: 0.82rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .slot-header.apm {
-            border-color: #17a2b8;
-            background: rgba(23,162,184,0.07);
-            color: #17a2b8;
-        }
+        /* Barre de progression */
+        .prog-wrap { margin-top:12px; }
+        .prog-labels { display:flex; justify-content:space-between; color:rgba(255,255,255,0.6); font-size:0.69rem; margin-bottom:5px; }
+        .prog-labels strong { color:white; font-size:0.82rem; }
+        .prog-track { background:rgba(255,255,255,0.15); border-radius:20px; height:7px; overflow:hidden; }
+        .prog-fill { height:100%; border-radius:20px; background:linear-gradient(90deg,#10B981,#34D399); transition:width 0.6s cubic-bezier(.4,0,.2,1); }
+        .prog-pills { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+        .ppill { border-radius:20px; padding:3px 10px; font-size:0.69rem; font-weight:700; }
+        .ppill.t { background:rgba(255,255,255,0.12); color:rgba(255,255,255,0.8); }
+        .ppill.g { background:rgba(16,185,129,0.28); color:#6EE7B7; }
+        .ppill.o { background:rgba(245,158,11,0.28); color:#FCD34D; }
+        .ppill.r { background:rgba(239,68,68,0.28); color:#FCA5A5; }
 
-        /* ── Groupe fournisseur ──────────────────────── */
-        .fourn-group { margin: 6px 10px; background: #1a2535; border-radius: 10px; overflow: hidden; }
-        .fourn-header {
-            background: #243450;
-            padding: 10px 14px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            user-select: none;
+        /* ══════════════════ TABS ══════════════════════ */
+        .tabs-bar { display:flex; background:white; border-bottom:2px solid var(--border); position:sticky; top:0; z-index:400; }
+        .tab {
+            flex:1; padding:12px 4px; text-align:center; font-size:0.76rem; font-weight:700;
+            color:var(--sub); cursor:pointer; border-bottom:3px solid transparent;
+            margin-bottom:-2px; transition:all 0.2s; position:relative;
         }
-        .fourn-name { font-weight: 700; font-size: 0.88rem; }
-        .fourn-address { font-size: 0.68rem; color: #6080a0; margin-top: 2px; }
-        .fourn-count {
-            background: rgba(255,255,255,0.12);
-            border-radius: 12px;
-            padding: 2px 9px;
-            font-size: 0.7rem;
-            font-weight: 600;
-        }
-        .fourn-count.done { background: rgba(40,167,69,0.3); color: #7fff8c; }
+        .tab.active { color:var(--blue); border-bottom-color:var(--blue); background:#FAFBFF; }
+        .tbadge {
+    display: inline-block;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    font-size: 0.6rem;
+    font-weight: 800;
+    color: white;
+    padding: 0 4px;
+    line-height: 18px;
+    margin-left: 4px;
+    vertical-align: middle;
+}
+        .tab-section { display:none; }
+        .tab-section.active { display:block; }
 
-        /* ── Article card ────────────────────────────── */
-        .article-card {
-            padding: 12px 14px;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            transition: background 0.2s;
+        /* ══════════════════ PIÈCES LIBRES (accordéon) ══════════════════ */
+        .libre-block {
+            margin:12px 12px 0;
+            border:2px solid var(--amber);
+            border-radius:14px;
+            overflow:hidden;
+            background:#FFFBEB;
         }
-        .article-card:last-child { border-bottom: none; }
-        .article-card.recupere { opacity: 0.45; }
-        .article-card.probleme { background: rgba(220,53,69,0.07); }
+        .libre-header {
+            background:linear-gradient(135deg,#F59E0B,#D97706);
+            padding:11px 16px;
+            display:flex; justify-content:space-between; align-items:center;
+            cursor:pointer; user-select:none;
+        }
+        .libre-title { color:white; font-weight:800; font-size:0.85rem; display:flex; align-items:center; gap:7px; }
+        .libre-badge { background:rgba(0,0,0,0.2); color:white; border-radius:10px; padding:2px 9px; font-size:0.68rem; font-weight:700; }
+        .libre-chevron { color:white; font-size:0.75rem; transition:transform 0.2s; }
+        .libre-body { display:none; } /* fermé par défaut */
+        .libre-fourn-label {
+            padding:7px 16px; background:#FEF3C7;
+            font-size:0.74rem; color:#78350F; font-weight:700;
+            border-bottom:1px solid #FDE68A;
+            display:flex; align-items:center; gap:6px;
+        }
+        .libre-line { padding:12px 16px; border-bottom:1px solid #FEF9C3; }
+        .libre-line:last-child { border-bottom:none; }
 
-        .article-code {
-            font-family: 'Courier New', monospace;
-            font-size: 1.05rem;
-            font-weight: 900;
-            color: #60a5fa;
-            letter-spacing: 0.04em;
-        }
-        .article-name {
-            font-size: 0.8rem;
-            color: #8090a8;
-            margin-top: 2px;
-            line-height: 1.3;
-        }
-        .article-meta {
-            display: flex;
-            gap: 6px;
-            margin-top: 6px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-        .meta-badge {
-            font-size: 0.67rem;
-            padding: 2px 7px;
-            border-radius: 10px;
-        }
-        .meta-site    { background: #1e3560; color: #80b0ff; }
-        .meta-qty     { background: #0d2e1e; color: #60e090; }
-        .meta-doc     { background: #2e1e00; color: #ffa030; }
-        .meta-note    { background: #1e0e30; color: #c080ff; }
-        .meta-vendeur { background: #1a1a2e; color: #8080c0; }
+        /* ══════════════════ CRÉNEAU ══════════════════════ */
+        .slot-hdr { display:flex; align-items:center; gap:10px; margin:16px 12px 6px; }
+        .slot-ico { width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1rem; flex-shrink:0; }
+        .slot-ico.m { background:#FEF3C7; }
+        .slot-ico.a { background:#EDE9FE; }
+        .slot-txt { font-weight:800; font-size:0.88rem; color:var(--navy); line-height:1.2; }
+        .slot-txt small { display:block; color:var(--sub); font-weight:500; font-size:0.68rem; }
+        .slot-line { flex:1; height:1.5px; background:var(--border); }
 
-        /* ── Statut dot ──────────────────────────────── */
-        .status-dot {
-            width: 9px; height: 9px;
-            border-radius: 50%;
-            display: inline-block;
-            flex-shrink: 0;
-            margin-right: 4px;
+        /* ══════════════════ CARTE FOURNISSEUR ═══════════ */
+        .fc { margin:5px 12px; background:white; border-radius:14px; box-shadow:var(--shadow); overflow:hidden; border:1.5px solid var(--border); }
+        .fc-header {
+            padding:11px 15px; display:flex; justify-content:space-between; align-items:center;
+            cursor:pointer; background:#F8FAFF; border-bottom:1.5px solid var(--border);
+            user-select:none; -webkit-user-select:none;
         }
-        .status-dot.en_attente { background: #555; }
-        .status-dot.assigné    { background: #0d6efd; }
-        .status-dot.en_route   { background: #17a2b8; }
-        .status-dot.recupere   { background: #28a745; }
-        .status-dot.au_magasin { background: #6c757d; }
-        .status-dot.probleme   { background: #dc3545; box-shadow: 0 0 6px #dc3545; }
+        .fc-name { font-weight:700; font-size:0.86rem; color:var(--navy); display:flex; align-items:center; gap:6px; }
+        .fc-addr { font-size:0.67rem; color:var(--sub); margin-top:2px; }
+        .fc-badge { border-radius:12px; padding:3px 9px; font-size:0.68rem; font-weight:700; white-space:nowrap; }
+        .fc-badge.p { background:#FEF3C7; color:#92400E; }
+        .fc-badge.d { background:#D1FAE5; color:#065F46; }
+        .fc-chevron { color:var(--sub); font-size:0.72rem; transition:transform 0.2s; flex-shrink:0; }
 
-        /* ── Boutons d'action ────────────────────────── */
-        .action-btns { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+        /* ══════════════════ ARTICLE CARD ═══════════════ */
+        .ac { padding:14px 15px; border-bottom:1px solid #F0F5FF; background:white; }
+        .ac:last-child { border-bottom:none; }
+        .ac.done { background:#F0FDF4; opacity:0.72; }
+        .ac.prob { background:#FFF5F5; }
 
-        .btn-scan {
-            background: #1e3560;
-            color: #80b0ff;
-            border: 1.5px solid #2d4a8a;
-            border-radius: 8px;
-            padding: 8px 14px;
-            font-size: 0.78rem;
-            font-weight: 600;
-            cursor: pointer;
-            flex: 1;
-            transition: all 0.15s;
-            min-height: 38px;
-        }
-        .btn-scan:active { transform: scale(0.96); }
-        .btn-scan.active {
-            background: #0d6efd;
-            border-color: #0d6efd;
-            color: white;
-            box-shadow: 0 0 12px rgba(13,110,253,0.4);
-        }
+        .ac-top { display:flex; align-items:flex-start; gap:9px; }
+        .sdot { width:8px; height:8px; border-radius:50%; flex-shrink:0; margin-top:5px; }
+        .sdot.en_attente { background:#CBD5E1; }
+        .sdot.assigné    { background:var(--blue); }
+        .sdot.en_route   { background:#0EA5E9; }
+        .sdot.recupere   { background:var(--mint); }
+        .sdot.probleme   { background:var(--red); box-shadow:0 0 5px var(--red); }
 
-        .btn-done {
-            background: rgba(40,167,69,0.2);
-            color: #60e090;
-            border: 1.5px solid rgba(40,167,69,0.3);
-            border-radius: 8px;
-            padding: 8px 12px;
-            font-size: 0.78rem;
-            font-weight: 600;
-            cursor: pointer;
-            min-height: 38px;
-            transition: all 0.15s;
-        }
-        .btn-done:active { transform: scale(0.96); }
+        .acode { font-family:'Courier New',monospace; font-weight:900; font-size:0.95rem; color:var(--blue); background:#EFF6FF; padding:3px 8px; border-radius:6px; border-left:3px solid var(--blue); letter-spacing:0.03em; display:inline-block; }
+        .aname { font-size:0.79rem; color:var(--sub); margin-top:3px; line-height:1.4; }
 
-        .btn-probleme {
-            background: rgba(220,53,69,0.15);
-            color: #ff8888;
-            border: 1.5px solid rgba(220,53,69,0.3);
-            border-radius: 8px;
-            padding: 8px 12px;
-            font-size: 0.78rem;
-            cursor: pointer;
-            min-height: 38px;
-            transition: all 0.15s;
-        }
-        .btn-probleme:active { transform: scale(0.96); }
+        .mrow { display:flex; gap:4px; margin-top:8px; flex-wrap:wrap; }
+        .mb { font-size:0.63rem; font-weight:600; padding:2px 7px; border-radius:7px; }
+        .mb-doc  { background:#FFF7ED; color:#9A3412; }
+        .mb-qty  { background:#ECFDF5; color:#065F46; }
+        .mb-site { background:#EFF6FF; color:#1D4ED8; }
+        .mb-slot { background:#F5F3FF; color:#5B21B6; }
+        .mb-note { background:#FDF4FF; color:#7E22CE; }
+        .mb-vend { background:#F0F9FF; color:#075985; }
 
-        /* ── Zone de scan ────────────────────────────── */
-        .scan-zone {
-            background: #0a1520;
-            border: 2px solid #2d4a8a;
-            border-radius: 8px;
-            padding: 10px;
-            margin-top: 8px;
-            display: none;
-        }
-        .scan-zone.active {
-            display: block;
-            border-color: #0d6efd;
-        }
-        .scan-info {
-            font-size: 0.72rem;
-            color: #5070a0;
-            margin-bottom: 6px;
-        }
-        .scan-info code { color: #60a5fa; background: #1a2535; padding: 1px 5px; border-radius: 3px; }
-        .scan-input {
-            background: #1a2535;
-            color: #e8ecf0;
-            border: 1.5px solid #2d4a8a;
-            border-radius: 6px;
-            padding: 10px 12px;
-            font-size: 1rem;
-            width: 100%;
-            outline: none;
-            font-family: monospace;
-        }
-        .scan-input:focus { border-color: #0d6efd; box-shadow: 0 0 8px rgba(13,110,253,0.25); }
+        /* ══════════════════ BOUTONS ACTION ══════════════ */
+        .arow { display:flex; gap:8px; margin-top:11px; align-items:stretch; }
 
-        .scan-feedback {
-            margin-top: 6px;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 0.80rem;
-            display: none;
+        /* Scanner — prend toute la place disponible */
+        .btn-sc {
+            flex:1;
+            background:var(--blue); color:white;
+            border:none; border-radius:10px;
+            padding:0 16px; font-size:0.82rem; font-weight:700;
+            cursor:pointer; min-height:46px;
+            display:flex; align-items:center; justify-content:center; gap:7px;
+            transition:all 0.15s;
         }
-        .scan-feedback.success { display: block; background: rgba(40,167,69,0.15); color: #7fff8c; border: 1px solid rgba(40,167,69,0.3); }
-        .scan-feedback.warning { display: block; background: rgba(255,193,7,0.12); color: #ffd066; border: 1px solid rgba(255,193,7,0.3); }
-        .scan-feedback.error   { display: block; background: rgba(220,53,69,0.12); color: #ff8888; border: 1px solid rgba(220,53,69,0.3); }
+        .btn-sc:active { transform:scale(0.97); filter:brightness(0.92); }
+        .btn-sc.open { background:#1D4ED8; }
 
-        .btn-validate-scan {
-            background: #0d6efd;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            padding: 8px 16px;
-            font-size: 0.78rem;
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 6px;
-            width: 100%;
-            min-height: 36px;
+        /* ✓ Check vert — carré fixe */
+        .btn-ok {
+            width:46px; height:46px; flex-shrink:0;
+            background:var(--mint); color:white;
+            border:none; border-radius:10px;
+            font-size:1.1rem; cursor:pointer;
+            display:flex; align-items:center; justify-content:center;
+            transition:all 0.15s;
         }
+        .btn-ok:active { transform:scale(0.97); filter:brightness(0.9); }
 
-        /* ── État vide ───────────────────────────────── */
-        .empty-state {
-            text-align: center;
-            padding: 36px 20px;
-            color: #304060;
+        /* ⚠ Problème — carré fixe */
+        .btn-pb {
+            width:46px; height:46px; flex-shrink:0;
+            background:#FFF1F2; color:var(--red);
+            border:1.5px solid #FECDD3; border-radius:10px;
+            font-size:1rem; cursor:pointer;
+            display:flex; align-items:center; justify-content:center;
+            transition:all 0.15s;
         }
-        .empty-state i { font-size: 2.5rem; margin-bottom: 10px; display: block; }
+        .btn-pb:active { transform:scale(0.97); }
 
-        /* ── FAB bouton scan global ──────────────────── */
-        .fab-scan {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: #0d6efd;
-            color: white;
-            border: none;
-            width: 58px;
-            height: 58px;
-            border-radius: 50%;
-            font-size: 1.3rem;
-            box-shadow: 0 4px 16px rgba(13,110,253,0.5);
-            cursor: pointer;
-            z-index: 200;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.15s;
-        }
-        .fab-scan:active { transform: scale(0.92); }
+        /* ══════════════════ ZONE SCAN ════════════════════ */
+        .scan-zone { display:none; background:#F0F7FF; border:2px solid var(--blue); border-radius:10px; padding:12px; margin-top:10px; }
+        .scan-zone.open { display:block; }
+        .scan-hint { font-size:0.69rem; color:var(--sub); margin-bottom:8px; }
+        .scan-hint code { background:#DBEAFE; color:#1D4ED8; padding:1px 5px; border-radius:4px; }
+        .scan-inp { background:white; color:var(--text); border:2px solid var(--blue); border-radius:8px; padding:12px 14px; font-size:1.05rem; width:100%; outline:none; font-family:monospace; letter-spacing:0.05em; }
+        .scan-inp:focus { box-shadow:0 0 0 3px rgba(59,130,246,0.18); }
+        .btn-val-scan { background:var(--blue); color:white; border:none; border-radius:8px; padding:11px; font-size:0.82rem; font-weight:700; width:100%; cursor:pointer; margin-top:8px; min-height:42px; }
+        .scan-fb { margin-top:8px; padding:9px 12px; border-radius:8px; font-size:0.77rem; display:none; }
+        .scan-fb.ok  { display:block; background:#ECFDF5; color:#065F46; border:1px solid #A7F3D0; }
+        .scan-fb.war { display:block; background:#FFFBEB; color:#92400E; border:1px solid #FDE68A; }
+        .scan-fb.err { display:block; background:#FFF5F5; color:#9B1C1C; border:1px solid #FECACA; }
 
-        /* ── Overlay scan global ─────────────────────── */
-        .scan-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.88);
-            z-index: 300;
-            align-items: center;
-            justify-content: center;
+        /* ══════════════════ ÉTATS POST-ACTION ═══════════ */
+        .res-ok {
+            display:flex; align-items:center; gap:8px;
+            background:#ECFDF5; color:#065F46;
+            border:1px solid #A7F3D0; border-radius:10px;
+            padding:10px 14px; font-weight:700; font-size:0.82rem; margin-top:10px;
         }
-        .scan-overlay.active { display: flex; }
-        .scan-modal-box {
-            background: #1a2535;
-            border-radius: 16px;
-            padding: 24px 20px;
-            width: 92%;
-            max-width: 400px;
-            border: 1.5px solid #2d4a8a;
-        }
-        .scan-modal-title { color: #60a5fa; font-weight: 700; margin-bottom: 14px; font-size: 1rem; }
-        .scan-modal-input {
-            background: #0d1a2e;
-            color: #e8ecf0;
-            border: 2px solid #0d6efd;
-            border-radius: 10px;
-            padding: 14px;
-            font-size: 1.3rem;
-            width: 100%;
-            outline: none;
-            font-family: monospace;
-            text-align: center;
-        }
-        .scan-modal-feedback {
-            margin-top: 10px;
-            font-size: 0.82rem;
-            min-height: 24px;
-        }
+        .res-ok i { font-size:1rem; color:var(--mint); }
 
-        /* ── Modal problème ──────────────────────────── */
-        .modal-dark .modal-content { background: #1a2535; color: #e8ecf0; border: 1px solid #2d4a8a; }
-        .modal-dark .modal-header  { border-color: #2d4a8a; }
-        .modal-dark .modal-footer  { border-color: #2d4a8a; }
-        .modal-dark .form-control  { background: #0d1a2e; color: #e8ecf0; border-color: #2d4a8a; }
-        .modal-dark .form-control:focus { border-color: #0d6efd; box-shadow: none; }
+        /* 🚪 Livré directement au client */
+        .btn-livre {
+            display:flex; align-items:center; justify-content:center; gap:7px;
+            width:100%; margin-top:8px;
+            background:linear-gradient(135deg,#7C3AED,#5B21B6);
+            color:white; border:none; border-radius:10px;
+            padding:12px 14px; font-size:0.82rem; font-weight:700;
+            cursor:pointer; min-height:44px; transition:all 0.15s;
+        }
+        .btn-livre:active { transform:scale(0.98); filter:brightness(0.92); }
 
-        /* ── Résultat récupéré ───────────────────────── */
-        .result-recupere {
-            color: #60e090;
-            font-size: 0.78rem;
-            margin-top: 6px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
+        /* ↩ Annuler */
+        .btn-annuler {
+            display:flex; align-items:center; justify-content:center; gap:5px;
+            width:100%; margin-top:6px;
+            background:none; color:var(--sub);
+            border:1.5px solid var(--border); border-radius:8px;
+            padding:8px; font-size:0.75rem; font-weight:600;
+            cursor:pointer; transition:all 0.15s;
         }
-        .result-probleme {
-            color: #ff8888;
-            font-size: 0.78rem;
-            margin-top: 6px;
+        .btn-annuler:hover { border-color:var(--red); color:var(--red); }
+
+        .res-prob { color:var(--red); font-size:0.78rem; margin-top:8px; padding:9px 12px; background:#FFF5F5; border-radius:8px; border-left:3px solid var(--red); }
+
+        /* ══════════════════ BOUTON JE PRENDS ════════════ */
+        .btn-prends {
+            display:flex; align-items:center; justify-content:center; gap:7px;
+            width:100%; margin-top:10px;
+            background:linear-gradient(135deg,#F59E0B,#D97706);
+            color:white; border:none; border-radius:10px;
+            padding:12px; font-size:0.82rem; font-weight:700;
+            cursor:pointer; min-height:44px; transition:all 0.15s;
         }
+        .btn-prends:active { transform:scale(0.98); }
+
+        /* ══════════════════ TERMINÉES (done) ════════════ */
+        .done-res { display:flex; align-items:center; gap:6px; color:var(--mint); font-size:0.78rem; font-weight:600; margin-top:8px; }
+
+        /* ══════════════════ EMPTY STATE ════════════════ */
+        .empty { text-align:center; padding:52px 24px; color:var(--sub); }
+        .empty-ico { font-size:3.2rem; display:block; margin-bottom:14px; }
+        .empty h5 { color:var(--navy); font-weight:700; margin-bottom:6px; }
+        .empty p { font-size:0.82rem; }
+
+        /* ══════════════════ FAB ═════════════════════════ */
+        .fab { position:fixed; bottom:26px; right:20px; width:62px; height:62px; border-radius:50%; background:var(--blue); color:white; border:none; font-size:1.4rem; box-shadow:0 6px 24px rgba(59,130,246,0.5); cursor:pointer; z-index:600; display:flex; align-items:center; justify-content:center; transition:all 0.15s; }
+        .fab:active { transform:scale(0.9); }
+
+        /* ══════════════════ SCAN OVERLAY ════════════════ */
+        .s-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); backdrop-filter:blur(5px); z-index:700; align-items:flex-end; justify-content:center; }
+        .s-overlay.open { display:flex; }
+        .s-box { background:white; border-radius:22px 22px 16px 16px; padding:24px 20px 28px; width:100%; max-width:480px; border-top:5px solid var(--blue); }
+        .s-title { font-weight:800; color:var(--navy); font-size:1.02rem; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+        .s-input { background:#EFF6FF; color:var(--text); border:2px solid var(--blue); border-radius:12px; padding:16px; font-size:1.3rem; width:100%; outline:none; font-family:monospace; text-align:center; letter-spacing:0.06em; }
+        .s-fb { margin-top:10px; font-size:0.82rem; min-height:22px; }
+        .s-close { background:#F1F5F9; color:var(--sub); border:none; border-radius:10px; padding:12px; font-size:0.82rem; font-weight:700; width:100%; cursor:pointer; margin-top:12px; }
+
+        /* ══════════════════ MODAL PROBLÈME ══════════════ */
+        .modal-content { border-radius:20px!important; border:none!important; box-shadow:0 20px 60px rgba(0,0,0,0.2)!important; }
+        .modal-header { border-color:var(--border)!important; }
+        .modal-footer { border-color:var(--border)!important; }
+        .form-control:focus { border-color:var(--blue)!important; box-shadow:0 0 0 3px rgba(59,130,246,0.15)!important; }
+
+        /* ══════════════════ DROPDOWN ════════════════════ */
+        .dropdown-menu { border-radius:12px; border:1.5px solid var(--border); box-shadow:0 8px 24px rgba(0,0,0,0.12); min-width:180px; }
+        .dropdown-item { font-size:0.82rem; padding:8px 16px; }
+        .dropdown-item.active { background:var(--blue); }
+
+
+
+
+
+        [id^="post-"] { display: none; }
+[id^="post-"].visible { display: block !important; }
     </style>
 </head>
 <body>
 
-{{-- ── TOP BAR ─────────────────────────────────────────────────── --}}
+{{-- ══ TOP BAR ══════════════════════════════════════════════════ --}}
+@php
+    $totalPieces = $stats['total'];
+    $recuperees  = $stats['recupere'];
+    $restantes   = $stats['restant'];
+    $problemes   = $stats['probleme'] ?? 0;
+    $pct         = $totalPieces > 0 ? round(($recuperees / $totalPieces) * 100) : 0;
+
+    $nonAssignees = \App\Models\TourneeLine::with(['site','fournisseur'])
+        ->whereDate('date_tournee', today())
+        ->whereNull('chauffeur_id')
+        ->whereNotIn('statut', ['recupere','au_magasin','livre_client'])
+        ->when($currentSiteId ?? null, fn($q) => $q->where('site_id', $currentSiteId))
+        ->orderBy('fournisseur_name')->get();
+    $countLibres = $nonAssignees->count();
+
+    $allCreneaux = [
+        '9h-11h'     => ['icon'=>'🌅','label'=>'9h – 11h',  'apm'=>false],
+        '11h-12h'    => ['icon'=>'🕚','label'=>'11h – 12h', 'apm'=>false],
+        '13h-14h'    => ['icon'=>'🌞','label'=>'13h – 14h', 'apm'=>true],
+        '15h-16h'    => ['icon'=>'🕒','label'=>'15h – 16h', 'apm'=>true],
+        '17h-18h'    => ['icon'=>'🌇','label'=>'17h – 18h', 'apm'=>true],
+        'matin'      => ['icon'=>'🌅','label'=>'Matin',      'apm'=>false],
+        'apres_midi' => ['icon'=>'🌇','label'=>'Après-midi', 'apm'=>true],
+    ];
+    $slotIcons = ['9h-11h'=>'🌅','11h-12h'=>'🕚','13h-14h'=>'🌞','15h-16h'=>'🕒','17h-18h'=>'🌇','matin'=>'🌅','apres_midi'=>'🌇'];
+@endphp
+
 <div class="top-bar">
-    <div class="d-flex justify-content-between align-items-center">
-        <h5>
-            🚗 {{ $chauffeur->name }}
-            <span style="color:#4a7aaa; font-weight:400; font-size:0.78rem; margin-left:6px;">
-                {{ now()->format('d/m/Y') }}
-            </span>
-        </h5>
-
-        <div class="d-flex align-items-center gap-2">
-
-        
-            <!-- Bouton Actualiser - Version plus petite -->
-            <button onclick="window.location.reload()" 
-                    class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
-                    style="padding: 5px 12px; font-size: 0.85rem;">
-                <i class="fas fa-sync-alt"></i>
-                <span>Actualiser</span>
-            </button>
-
-            {{-- Bouton bascule site (si chauffeur a accès multi-sites ou site_id null) --}}
+    <div class="top-row1">
+        <div class="driver-info">
+            <h1><i class="fas fa-truck" style="opacity:.7;font-size:.85rem;margin-right:6px;"></i>{{ $chauffeur->name }}</h1>
+            <span>{{ now()->format('l d/m/Y') }}</span>
+        </div>
+        <div class="top-btns">
             @if(!$chauffeur->site_id || $sites->count() > 1)
             <div class="dropdown">
-                <button class="btn btn-sm btn-outline-warning dropdown-toggle"
-                        data-bs-toggle="dropdown"
-                        style="font-size:0.8rem; padding:5px 10px;">
-                    <i class="fas fa-store me-1"></i>
+                <button class="tbtn" data-bs-toggle="dropdown">
+                    <i class="fas fa-store"></i>
                     {{ $currentSiteId ? optional($sites->find($currentSiteId))->name : 'Tous' }}
+                    <i class="fas fa-chevron-down" style="font-size:.55rem;"></i>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end">
-                    <li>
-                        <form method="POST" action="{{ route('chauffeur.switch_site') }}">
-                            @csrf
-                            <input type="hidden" name="site_id" value="">
-                            <button class="dropdown-item {{ !$currentSiteId ? 'active' : '' }}">
-                                🌐 Tous les sites
-                            </button>
-                        </form>
-                    </li>
+                    <li><form method="POST" action="{{ route('chauffeur.switch_site') }}">@csrf<input type="hidden" name="site_id" value=""><button class="dropdown-item {{ !$currentSiteId?'active':'' }}">🌐 Tous les sites</button></form></li>
                     @foreach($sites as $site)
-                    <li>
-                        <form method="POST" action="{{ route('chauffeur.switch_site') }}">
-                            @csrf
-                            <input type="hidden" name="site_id" value="{{ $site->id }}">
-                            <button class="dropdown-item {{ $currentSiteId == $site->id ? 'active' : '' }}">
-                                🏪 {{ $site->name }}
-                            </button>
-                        </form>
-                    </li>
+                    <li><form method="POST" action="{{ route('chauffeur.switch_site') }}">@csrf<input type="hidden" name="site_id" value="{{ $site->id }}"><button class="dropdown-item {{ $currentSiteId==$site->id?'active':'' }}">🏪 {{ $site->name }}</button></form></li>
                     @endforeach
                 </ul>
             </div>
             @endif
-
-            <!-- Bouton Déconnexion -->
-            <form action="{{ route('chauffeur.logout') }}" method="POST" class="mb-0">
-                @csrf
-                <button type="submit" class="btn btn-sm btn-outline-light" style="font-size:0.85rem; padding:6px 12px;">
-                    <i class="fas fa-sign-out-alt"></i>
-                </button>
+            <button onclick="location.reload()" class="tbtn"><i class="fas fa-sync-alt"></i></button>
+            <form action="{{ route('chauffeur.logout') }}" method="POST" class="mb-0">@csrf
+                <button type="submit" class="tbtn red"><i class="fas fa-sign-out-alt"></i></button>
             </form>
         </div>
     </div>
 
-    <div class="stats-bar">
-        <div class="stat-pill orange">📦 {{ $stats['total'] }} pièce{{ $stats['total'] > 1 ? 's' : '' }}</div>
-        <div class="stat-pill green">✅ {{ $stats['recupere'] }} récupérée{{ $stats['recupere'] > 1 ? 's' : '' }}</div>
-        <div class="stat-pill {{ $stats['restant'] > 0 ? 'red' : 'green' }}">
-            ⏳ {{ $stats['restant'] }} restante{{ $stats['restant'] > 1 ? 's' : '' }}
+    <div class="prog-wrap">
+        <div class="prog-labels">
+            <span>Progression <strong>{{ $pct }}%</strong></span>
+            <span><strong>{{ $recuperees }}</strong>/{{ $totalPieces }} pièces</span>
+        </div>
+        <div class="prog-track"><div class="prog-fill" style="width:{{ $pct }}%"></div></div>
+        <div class="prog-pills">
+            <span class="ppill t">📦 {{ $totalPieces }}</span>
+            @if($restantes > 0)<span class="ppill o">⏳ {{ $restantes }} restante{{ $restantes>1?'s':'' }}</span>
+            @else<span class="ppill g">🎉 Tout récupéré !</span>@endif
+            @if($problemes > 0)<span class="ppill r">⚠️ {{ $problemes }}</span>@endif
+            @if($countLibres > 0)<span class="ppill" style="background:rgba(245,158,11,.28);color:#FCD34D;">🆓 {{ $countLibres }} libre{{ $countLibres>1?'s':'' }}</span>@endif
         </div>
     </div>
 </div>
 
-{{-- ── PIÈCES NON ASSIGNÉES ─────────────────────────────────────── --}}
-@php
-    $nonAssignees = \App\Models\TourneeLine::with(['site', 'fournisseur'])
-        ->whereDate('date_tournee', today())
-        ->whereNull('chauffeur_id')
-        ->whereNotIn('statut', ['recupere', 'au_magasin', 'livre_client'])
-        ->when($currentSiteId ?? null, fn($q) => $q->where('site_id', $currentSiteId))
-        ->orderBy('fournisseur_name')
-        ->get();
-@endphp
-
-@if($nonAssignees->count() > 0)
-<div style="margin:10px;background:#1a1a2e;border-radius:10px;border:2px solid #ffc107;overflow:hidden;">
-    <div style="background:#2a2500;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;">
-        <span style="color:#ffc107;font-weight:700;font-size:0.88rem;">
-            <i class="fas fa-exclamation-circle me-2"></i>
-            Pièces à prendre — Non assignées
-        </span>
-        <span style="background:rgba(255,193,7,0.2);color:#ffc107;border-radius:12px;padding:2px 10px;font-size:0.72rem;">
-            {{ $nonAssignees->count() }} pièce(s)
-        </span>
-    </div>
-    @foreach($nonAssignees->groupBy('fournisseur_name') as $fourn => $lignes)
-    <div style="border-bottom:1px solid rgba(255,255,255,0.05);">
-        <div style="padding:8px 14px;background:#1e1a00;font-size:0.78rem;color:#ffa030;font-weight:600;">
-            <i class="fas fa-industry me-1"></i>{{ $fourn ?: 'Fournisseur non défini' }}
-            <small style="color:#888;font-weight:400;margin-left:8px;">
-                {{ optional($lignes->first()->site)->name }}
-            </small>
-        </div>
-        @foreach($lignes as $ligne)
-        <div class="article-card" id="nonassign-card-{{ $ligne->id }}" style="padding:10px 14px;">
-            <div class="d-flex align-items-start justify-content-between gap-2">
-                <div class="flex-fill">
-                    <span class="article-code">{{ $ligne->article_code }}</span>
-                    <div class="article-name">{{ $ligne->article_name }}</div>
-                    <div class="article-meta">
-                        <span class="meta-badge meta-doc">📄 {{ $ligne->source_numdoc }}</span>
-                        <span class="meta-badge meta-qty">×{{ number_format($ligne->quantity, 0) }}</span>
-                        @if($ligne->created_by_name)
-    <span class="meta-badge meta-vendeur">
-        👤 {{ $ligne->created_by_name }}
-    </span>
+{{-- ══ TABS ══════════════════════════════════════════════════════ --}}
+<div class="tabs-bar">
+    <div class="tab active" onclick="switchTab('restant')" id="tab-restant">
+    À faire @if($restantes > 0)<span class="tbadge" style="background:var(--red);">{{ $restantes }}</span>@endif
+</div>
+<div class="tab" onclick="switchTab('done')" id="tab-done">
+    Terminées @if($recuperees > 0)<span class="tbadge" style="background:var(--mint);">{{ $recuperees }}</span>@endif
+</div>
+@if($countLibres > 0)
+<div class="tab" onclick="switchTab('libre')" id="tab-libre">
+    Libres <span class="tbadge" style="background:var(--amber);">{{ $countLibres }}</span>
+</div>
 @endif
-                        {{-- Créneau demandé --}}
-                        @php
-                            $slotIcons = [
-                                '9h-11h'     => '🌅',
-                                '11h-12h'    => '🕚',
-                                '13h-14h'    => '🌞',
-                                '15h-16h'    => '🕒',
-                                '17h-18h'    => '🌇',
-                                'matin'      => '🌅',
-                                'apres_midi' => '🌇',
-                            ];
-                            $slotIcon = $slotIcons[$ligne->slot] ?? '🕐';
-                        @endphp
-                        <span class="meta-badge" style="background:#1a2b4a;color:#90c0ff;font-weight:700;">
-                            {{ $slotIcon }} {{ $ligne->slot }}
-                            @if($ligne->slot_modified ?? false)
-                                <span style="color:#ffc107;">⚠️</span>
-                            @endif
-                        </span>
-                        {{-- Date si différente d'aujourd'hui --}}
-                        @if($ligne->date_tournee && $ligne->date_tournee->toDateString() !== today()->toDateString())
-                            <span class="meta-badge" style="background:#3a1a00;color:#ffa030;">
-                                📅 {{ $ligne->date_tournee->format('d/m') }}
-                            </span>
-                        @endif
-                        {{-- Magasin source --}}
-                        <span class="meta-badge" style="background:#1a1a3a;color:#aab4ff;">
-                            🏪 {{ optional($ligne->site)->name ?? 'N/A' }}
-                        </span>
-                        @if($ligne->notes)
-                            <span class="meta-badge meta-note">📝 {{ Str::limit($ligne->notes, 50) }}</span>
-                        @endif
-                    </div>
-                </div>
-                <button class="btn-self-assign"
-                        id="btn-assign-{{ $ligne->id }}"
-                        onclick="selfAssign({{ $ligne->id }})"
-                        style="background:linear-gradient(135deg,#ffc107,#e67e00);color:#1a1a00;border:none;
-                               border-radius:8px;padding:8px 14px;font-size:0.78rem;font-weight:700;
-                               cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all 0.15s;">
-                    <i class="fas fa-hand-point-right me-1"></i> Je prends
-                </button>
+</div>
+
+{{-- ══════════════════════════════════════════════════════════════
+     ONGLET : À FAIRE
+══════════════════════════════════════════════════════════════ --}}
+<div class="tab-section active" id="section-restant">
+
+    {{-- Pièces libres en accordéon FERMÉ par défaut --}}
+    @if($countLibres > 0)
+    <div class="libre-block">
+        <div class="libre-header" onclick="toggleLibre()">
+            <div class="libre-title">
+                <i class="fas fa-layer-group"></i>
+                Pièces non assignées
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <span class="libre-badge">{{ $countLibres }}</span>
+                <i class="fas fa-chevron-down libre-chevron" id="libre-chevron"></i>
             </div>
         </div>
-        @endforeach
+        <div class="libre-body" id="libre-body">
+            @foreach($nonAssignees->groupBy('fournisseur_name') as $fourn => $lignes)
+            <div>
+                <div class="libre-fourn-label">
+                    <i class="fas fa-industry"></i>{{ $fourn ?: 'Fournisseur non défini' }}
+                    <span style="color:var(--sub);font-weight:400;">— {{ optional($lignes->first()->site)->name }}</span>
+                </div>
+                @foreach($lignes as $ligne)
+                <div class="libre-line" id="nonassign-{{ $ligne->id }}">
+                    <span class="acode">{{ $ligne->article_code }}</span>
+                    <div class="aname">{{ $ligne->article_name }}</div>
+                    <div class="mrow">
+                        <span class="mb mb-doc">📄 {{ $ligne->source_numdoc }}</span>
+                        <span class="mb mb-qty">×{{ number_format($ligne->quantity,0) }}</span>
+                        <span class="mb mb-slot">{{ $slotIcons[$ligne->slot]??'🕐' }} {{ $ligne->slot }}</span>
+                        @if($ligne->created_by_name)<span class="mb mb-vend">👤 {{ $ligne->created_by_name }}</span>@endif
+                        @if($ligne->notes)<span class="mb mb-note">📝 {{ Str::limit($ligne->notes,30) }}</span>@endif
+                    </div>
+                    <button class="btn-prends" id="btn-prends-{{ $ligne->id }}" onclick="selfAssign({{ $ligne->id }}, 'nonassign-{{ $ligne->id }}', 'btn-prends-{{ $ligne->id }}')">
+                        <i class="fas fa-hand-point-right"></i> Je prends cette pièce
+                    </button>
+                </div>
+                @endforeach
+            </div>
+            @endforeach
+        </div>
     </div>
+    @endif
+
+    {{-- Pièces assignées par créneau --}}
+    @php $hasRestant = false; @endphp
+    @foreach($lignesParCreneau as $slotKey => $lignesParFourn)
+        @php
+            $lr = collect();
+            foreach ($lignesParFourn as $f => $ll) {
+                $en = $ll->filter(fn($l) => !in_array($l->statut,['recupere','au_magasin','livre_client']));
+                if ($en->isNotEmpty()) $lr[$f] = $en;
+            }
+        @endphp
+        @if($lr->isNotEmpty())
+            @php
+                $hasRestant = true;
+                $si = $allCreneaux[$slotKey] ?? ['icon'=>'🕐','label'=>$slotKey,'apm'=>false];
+                $total = $lr->flatten()->count();
+            @endphp
+            <div class="slot-hdr">
+                <div class="slot-ico {{ $si['apm']?'a':'m' }}">{{ $si['icon'] }}</div>
+                <div class="slot-txt">{{ $si['label'] }}<small>{{ $total }} pièce{{ $total>1?'s':'' }}</small></div>
+                <div class="slot-line"></div>
+            </div>
+            @foreach($lr as $fournisseurName => $lignes)
+                @php $gid = 'r-'.Str::slug($slotKey).'-'.Str::slug($fournisseurName); @endphp
+                <div class="fc">
+                    <div class="fc-header" onclick="toggleFC('{{ $gid }}')">
+                        <div>
+                            <div class="fc-name"><i class="fas fa-industry" style="color:var(--amber);font-size:.8rem;"></i>{{ $fournisseurName ?: 'Fournisseur non défini' }}</div>
+                            @php $adr = optional($lignes->first()->fournisseur)->address; @endphp
+                            @if($adr)<div class="fc-addr"><i class="fas fa-map-marker-alt me-1"></i>{{ $adr }}</div>@endif
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span class="fc-badge p" id="badge-{{ $gid }}">⏳ {{ $lignes->count() }}</span>
+                            <i class="fas fa-chevron-down fc-chevron" id="chev-{{ $gid }}"></i>
+                        </div>
+                    </div>
+                    <div id="body-{{ $gid }}">
+                        @foreach($lignes as $ligne)
+                        <div class="ac" id="ac-{{ $ligne->id }}">
+                            <div class="ac-top">
+                                <div class="sdot {{ $ligne->statut }}"></div>
+                                <div style="flex:1;">
+                                    <span class="acode">{{ $ligne->article_code }}</span>
+                                    <div class="aname">{{ $ligne->article_name }}</div>
+                                </div>
+                            </div>
+                            <div class="mrow">
+                                <span class="mb mb-doc">📄 {{ $ligne->source_numdoc }}</span>
+                                <span class="mb mb-qty">×{{ number_format($ligne->quantity,0) }}</span>
+                                <span class="mb mb-site">🏪 {{ optional($ligne->site)->name }}</span>
+                                <span class="mb mb-slot">{{ $slotIcons[$ligne->slot]??'🕐' }} {{ $ligne->slot }}</span>
+                                @if($ligne->created_by_name)<span class="mb mb-vend">👤 {{ $ligne->created_by_name }}</span>@endif
+                                @if($ligne->notes)<span class="mb mb-note">📝 {{ Str::limit($ligne->notes,30) }}</span>@endif
+                            </div>
+
+                            {{-- ══ 3 BOUTONS : Scanner | ✓ | ⚠ ══ --}}
+                            <div class="arow" id="arow-{{ $ligne->id }}">
+                                <button type="button" class="btn-sc" id="bsc-{{ $ligne->id }}"
+                                        onclick="toggleScan({{ $ligne->id }})">
+                                    <i class="fas fa-barcode"></i> Scanner
+                                </button>
+                                <button type="button" class="btn-ok" id="bok-{{ $ligne->id }}"
+                                        onclick="markDone({{ $ligne->id }})"
+                                        title="Récupérée sans scan">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button type="button" class="btn-pb"
+                                        onclick="openProbleme({{ $ligne->id }},'{{ $ligne->article_code }}','{{ addslashes($ligne->article_name) }}')"
+                                        title="Signaler un problème">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </button>
+                            </div>
+
+                            {{-- Zone de scan --}}
+                            <div class="scan-zone" id="sz-{{ $ligne->id }}">
+                                <div class="scan-hint">
+                                    @if($ligne->barcode)Code attendu : <code>{{ $ligne->barcode }}</code>
+                                    @else<span style="color:var(--amber);">Pas de code — scanner pour associer</span>@endif
+                                </div>
+                                <input type="text" class="scan-inp" id="si-{{ $ligne->id }}"
+                                       placeholder="Scanner le code-barres..." autocomplete="off"
+                                       onkeydown="if(event.key==='Enter'){event.preventDefault();submitScan({{ $ligne->id }});}">
+                                <button type="button" class="btn-val-scan" onclick="submitScan({{ $ligne->id }})">
+                                    <i class="fas fa-check me-1"></i> Valider
+                                </button>
+                                <div class="scan-fb" id="sfb-{{ $ligne->id }}"></div>
+                            </div>
+
+                            {{-- Boutons post-récupération (cachés au départ) --}}
+                            <div id="post-{{ $ligne->id }}" style="display:none;">
+                                <div class="res-ok" id="res-{{ $ligne->id }}">
+                                    <i class="fas fa-check-circle"></i> Récupérée avec succès !
+                                </div>
+                                <button type="button" class="btn-livre" id="bliv-{{ $ligne->id }}"
+                                        onclick="livreClient({{ $ligne->id }})">
+                                    🚪 Livré directement au client
+                                </button>
+                                <button type="button" class="btn-annuler" onclick="annulerScan({{ $ligne->id }})">
+                                    <i class="fas fa-undo"></i> Annuler — remettre en attente
+                                </button>
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endforeach
+        @endif
+    @endforeach
+
+    @if(!$hasRestant && $countLibres === 0)
+    <div class="empty">
+        <span class="empty-ico">🎉</span>
+        <h5>Tournée terminée !</h5>
+        <p>Toutes les pièces ont été récupérées. Excellent travail !</p>
+    </div>
+    @elseif(!$hasRestant)
+    <div class="empty" style="padding:24px;">
+        <p style="color:var(--sub);font-size:.82rem;">Vos pièces sont toutes traitées.<br>Des pièces libres sont disponibles ci-dessus.</p>
+    </div>
+    @endif
+</div>
+
+{{-- ══════════════════════════════════════════════════════════════
+     ONGLET : TERMINÉES
+══════════════════════════════════════════════════════════════ --}}
+<div class="tab-section" id="section-done">
+    @php $hasDone = false; @endphp
+    @foreach($lignesParCreneau as $slotKey => $lignesParFourn)
+        @php
+            $ld = collect();
+            foreach ($lignesParFourn as $f => $ll) {
+                $t = $ll->filter(fn($l) => in_array($l->statut,['recupere','au_magasin','livre_client']));
+                if ($t->isNotEmpty()) $ld[$f] = $t;
+            }
+        @endphp
+        @if($ld->isNotEmpty())
+            @php $hasDone = true; $si = $allCreneaux[$slotKey]??['icon'=>'🕐','label'=>$slotKey,'apm'=>false]; $td = $ld->flatten()->count(); @endphp
+            <div class="slot-hdr">
+                <div class="slot-ico {{ $si['apm']?'a':'m' }}">{{ $si['icon'] }}</div>
+                <div class="slot-txt">{{ $si['label'] }}<small>{{ $td }} pièce{{ $td>1?'s':'' }}</small></div>
+                <div class="slot-line"></div>
+            </div>
+            @foreach($ld as $fournisseurName => $lignes)
+                @php $gid = 'd-'.Str::slug($slotKey).'-'.Str::slug($fournisseurName); @endphp
+                <div class="fc">
+                    <div class="fc-header" onclick="toggleFC('{{ $gid }}')">
+                        <div><div class="fc-name"><i class="fas fa-industry" style="color:var(--mint);font-size:.8rem;"></i>{{ $fournisseurName ?: 'Non défini' }}</div></div>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span class="fc-badge d">✅ {{ $lignes->count() }}</span>
+                            <i class="fas fa-chevron-down fc-chevron" id="chev-{{ $gid }}"></i>
+                        </div>
+                    </div>
+                    <div id="body-{{ $gid }}" style="display:none;">
+                        @foreach($lignes as $ligne)
+                        <div class="ac done">
+                            <div class="ac-top">
+                                <div class="sdot recupere"></div>
+                                <div style="flex:1;">
+                                    <span class="acode">{{ $ligne->article_code }}</span>
+                                    <div class="aname">{{ $ligne->article_name }}</div>
+                                </div>
+                            </div>
+                            <div class="mrow">
+                                <span class="mb mb-doc">📄 {{ $ligne->source_numdoc }}</span>
+                                <span class="mb mb-qty">×{{ number_format($ligne->quantity,0) }}</span>
+                            </div>
+                            <div class="done-res">
+    <i class="fas fa-check-circle" style="color:var(--mint);"></i>
+    @if($ligne->statut==='livre_client') Livré au client
+    @elseif($ligne->statut==='au_magasin') Au magasin
+    @else Récupéré @if($ligne->scanned_at)— {{ $ligne->scanned_at->format('H:i') }}@endif
+        @if($ligne->scanned_barcode)<code style="font-size:.65rem;margin-left:4px;">{{ $ligne->scanned_barcode }}</code>@endif
+    @endif
+</div>
+@if($ligne->statut !== 'livre_client')
+<button type="button" class="btn-annuler" onclick="annulerScan({{ $ligne->id }})"
+        style="margin-top:6px;">
+    <i class="fas fa-undo"></i> Annuler — remettre en attente
+</button>
+@endif
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endforeach
+        @endif
+    @endforeach
+    @if(!$hasDone)
+    <div class="empty"><span class="empty-ico">📦</span><h5>Aucune pièce terminée</h5><p>Les pièces récupérées apparaîtront ici.</p></div>
+    @endif
+</div>
+
+{{-- ══════════════════════════════════════════════════════════════
+     ONGLET : LIBRES
+══════════════════════════════════════════════════════════════ --}}
+@if($countLibres > 0)
+<div class="tab-section" id="section-libre">
+    @foreach($nonAssignees->groupBy('fournisseur_name') as $fourn => $lignes)
+        @php $gid2 = 'fl-'.Str::slug($fourn); @endphp
+        <div class="fc" style="margin-top:10px;">
+            <div class="fc-header" onclick="toggleFC('{{ $gid2 }}')">
+                <div>
+                    <div class="fc-name"><i class="fas fa-industry" style="color:var(--amber);font-size:.8rem;"></i>{{ $fourn ?: 'Non défini' }}</div>
+                    <div class="fc-addr">{{ optional($lignes->first()->site)->name }}</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <span class="fc-badge p">🆓 {{ $lignes->count() }}</span>
+                    <i class="fas fa-chevron-down fc-chevron" id="chev-{{ $gid2 }}"></i>
+                </div>
+            </div>
+            <div id="body-{{ $gid2 }}">
+                @foreach($lignes as $ligne)
+                <div class="ac" id="fl-{{ $ligne->id }}">
+                    <div class="ac-top">
+                        <div class="sdot en_attente"></div>
+                        <div style="flex:1;">
+                            <span class="acode">{{ $ligne->article_code }}</span>
+                            <div class="aname">{{ $ligne->article_name }}</div>
+                        </div>
+                    </div>
+                    <div class="mrow">
+                        <span class="mb mb-doc">📄 {{ $ligne->source_numdoc }}</span>
+                        <span class="mb mb-qty">×{{ number_format($ligne->quantity,0) }}</span>
+                        <span class="mb mb-slot">{{ $slotIcons[$ligne->slot]??'🕐' }} {{ $ligne->slot }}</span>
+                        @if($ligne->created_by_name)<span class="mb mb-vend">👤 {{ $ligne->created_by_name }}</span>@endif
+                        @if($ligne->notes)<span class="mb mb-note">📝 {{ Str::limit($ligne->notes,30) }}</span>@endif
+                    </div>
+                    <button type="button" class="btn-prends" id="bfl-{{ $ligne->id }}"
+                            onclick="selfAssign({{ $ligne->id }},'fl-{{ $ligne->id }}','bfl-{{ $ligne->id }}')">
+                        <i class="fas fa-hand-point-right"></i> Je prends cette pièce
+                    </button>
+                </div>
+                @endforeach
+            </div>
+        </div>
     @endforeach
 </div>
 @endif
 
-{{-- ── TOURNÉE PAR CRÉNEAUX ───────────────────────────────────────── --}}
-@php
-// Déterminer si les nouveaux créneaux existent dans les données
-$hasNewSlots = isset($lignesParCreneau) && collect(['9h-11h','11h-12h','13h-14h','15h-16h','17h-18h'])
-    ->some(fn($s) => isset($lignesParCreneau[$s]) && $lignesParCreneau[$s]->isNotEmpty());
+{{-- ══ FAB ══════════════════════════════════════════════════════ --}}
+<button type="button" class="fab" onclick="openGS()" title="Scanner"><i class="fas fa-barcode"></i></button>
 
-$allCreneaux = [
-    '9h-11h'     => ['icon' => '🌅', 'label' => '9h – 11h',          'apm' => false],
-    '11h-12h'    => ['icon' => '🕚', 'label' => '11h – 12h',         'apm' => false],
-    '13h-14h'    => ['icon' => '🌞', 'label' => '13h – 14h',         'apm' => true],
-    '15h-16h'    => ['icon' => '🕒', 'label' => '15h – 16h',         'apm' => true],
-    '17h-18h'    => ['icon' => '🌇', 'label' => '17h – 18h',         'apm' => true],
-];
-
-// Ajouter anciens slots seulement si pas de nouveaux (compatibilité)
-if (!$hasNewSlots) {
-    $allCreneaux['matin']      = ['icon' => '🌅', 'label' => 'Matin (8h-12h)',      'apm' => false];
-    $allCreneaux['apres_midi'] = ['icon' => '🌇', 'label' => 'Après-midi (13h-18h)', 'apm' => true];
-}
-@endphp
-
-{{-- TOURNÉE DU CHAUFFEUR --}}
-@php $hasLines = false; @endphp
-
-@foreach($lignesParCreneau as $slotKey => $lignesParFourn)
-    @if($lignesParFourn->isNotEmpty())
-        @php $hasLines = true; @endphp
-        <div class="slot-header {{ str_contains($slotKey, '13h') || str_contains($slotKey, '15h') || str_contains($slotKey, '17h') || $slotKey === 'apres_midi' ? 'apm' : '' }}">
-            🌅 {{ ucfirst(str_replace('_', ' ', $slotKey)) }}
-            <span style="font-size:0.68rem; opacity:0.8;">({{ $lignesParFourn->flatten()->count() }} pièces)</span>
-        </div>
-
-        @foreach($lignesParFourn as $fournisseurName => $lignes)
-            @include('chauffeur.partials.fourn-group', [
-                'fournisseurName' => $fournisseurName,
-                'lignes' => $lignes,
-                'groupId' => $slotKey . '-' . Str::slug($fournisseurName)
-            ])
-        @endforeach
-    @endif
-@endforeach
-
-@if(!$hasLines)
-    <div class="empty-state">
-        <i class="fas fa-check-circle"></i>
-        Aucune pièce à récupérer aujourd'hui
-    </div>
-@endif
-
-{{-- ── FAB SCAN ─────────────────────────────────────────────────── --}}
-<button class="fab-scan" onclick="openGlobalScan()" title="Scanner une pièce">
-    <i class="fas fa-barcode"></i>
-</button>
-
-{{-- ── OVERLAY SCAN GLOBAL ──────────────────────────────────────── --}}
-<div class="scan-overlay" id="globalScanOverlay" onclick="if(event.target===this) closeGlobalScan()">
-    <div class="scan-modal-box">
-        <div class="scan-modal-title"><i class="fas fa-barcode me-2"></i>Scanner une pièce</div>
-        <input type="text" id="globalScanInput" class="scan-modal-input"
-               placeholder="Scanner ici..." autocomplete="off">
-        <div id="globalScanFeedback" class="scan-modal-feedback"></div>
-        <div class="d-flex gap-2 mt-3">
-            <button class="btn btn-sm btn-secondary flex-fill" onclick="closeGlobalScan()">
-                <i class="fas fa-times me-1"></i>Fermer
-            </button>
-        </div>
+{{-- ══ SCAN OVERLAY ══════════════════════════════════════════════ --}}
+<div class="s-overlay" id="gsOverlay" onclick="if(event.target===this)closeGS()">
+    <div class="s-box">
+        <div class="s-title"><i class="fas fa-barcode" style="color:var(--blue);"></i> Scanner une pièce</div>
+        <input type="text" id="gsInput" class="s-input" placeholder="Scanner ici..." autocomplete="off">
+        <div id="gsFb" class="s-fb"></div>
+        <button type="button" class="s-close" onclick="closeGS()"><i class="fas fa-times me-1"></i> Fermer</button>
     </div>
 </div>
 
-{{-- ── MODAL PROBLÈME ───────────────────────────────────────────── --}}
-<div class="modal fade modal-dark" id="problemeModal" tabindex="-1">
+{{-- ══ MODAL PROBLÈME ════════════════════════════════════════════ --}}
+<div class="modal fade" id="probModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h6 class="modal-title text-danger">
-                    <i class="fas fa-exclamation-triangle me-2"></i>Signaler un problème
-                </h6>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <h6 class="modal-title" style="color:var(--red);font-weight:700;"><i class="fas fa-exclamation-triangle me-2"></i>Signaler un problème</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <p id="probleme-article-info" class="mb-2" style="font-size:0.82rem; color:#8090a8;"></p>
-                <textarea id="probleme-notes-input" class="form-control" rows="3"
-                          placeholder="Pièce absente, mauvaise référence, fournisseur fermé, erreur de quantité..."></textarea>
+                <p id="prob-info" style="font-size:.82rem;color:var(--sub);background:var(--bg);padding:9px 12px;border-radius:8px;margin-bottom:12px;"></p>
+                <textarea id="prob-notes" class="form-control" rows="3"
+                          placeholder="Pièce absente, mauvaise référence, fournisseur fermé..."
+                          style="border-radius:10px;border:1.5px solid var(--border);font-size:.85rem;resize:none;"></textarea>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Annuler</button>
-                <button type="button" class="btn btn-danger btn-sm px-4" id="probleme-confirm-btn">
-                    <i class="fas fa-paper-plane me-1"></i>Envoyer
-                </button>
+                <button type="button" class="btn btn-danger btn-sm px-4" id="prob-send"><i class="fas fa-paper-plane me-1"></i> Envoyer</button>
             </div>
         </div>
     </div>
@@ -602,391 +708,286 @@ if (!$hasNewSlots) {
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
-const CHAUFFEUR_ID = {{ session('chauffeur_id') ?? 'null' }};
-let currentProblemeLineId = null;
+const CID  = {{ session('chauffeur_id') ?? 'null' }};
+let probLineId = null;
 
-// ════════════════════════════════════════════════════════
-// GROUPE FOURNISSEUR : toggle
-// ════════════════════════════════════════════════════════
-function toggleGroup(id) {
-    const body = document.getElementById('fourn-body-' + id);
-    const icon = document.getElementById('fourn-icon-' + id);
-    if (!body) return;
-    const isHidden = body.style.display === 'none';
-    body.style.display = isHidden ? 'block' : 'none';
-    icon.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+/* ══ TABS ══════════════════════════════════════════════════════ */
+function switchTab(n) {
+    document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('section-' + n).classList.add('active');
+    document.getElementById('tab-' + n).classList.add('active');
 }
 
-// ════════════════════════════════════════════════════════
-// ZONE DE SCAN PAR LIGNE
-// ════════════════════════════════════════════════════════
-function toggleScan(lineId) {
-    const zone = document.getElementById('scan-zone-' + lineId);
-    const btn  = document.getElementById('btn-scan-' + lineId);
-    const isActive = zone.classList.contains('active');
+/* ══ ACCORDÉON LIBRES (fermé par défaut) ══════════════════════ */
+function toggleLibre() {
+    const body   = document.getElementById('libre-body');
+    const chev   = document.getElementById('libre-chevron');
+    const isOpen = body.style.display === 'block';
+    body.style.display = isOpen ? 'none' : 'block';
+    chev.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+}
 
-    // Fermer toutes les zones ouvertes
-    document.querySelectorAll('.scan-zone.active').forEach(z => z.classList.remove('active'));
-    document.querySelectorAll('.btn-scan.active').forEach(b => b.classList.remove('active'));
+/* ══ TOGGLE FOURNISSEUR ════════════════════════════════════════ */
+function toggleFC(id) {
+    const body = document.getElementById('body-' + id);
+    const chev = document.getElementById('chev-' + id);
+    if (!body) return;
+    const open = body.style.display === 'block';
+    body.style.display = open ? 'none' : 'block';
+    if (chev) chev.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
+}
 
-    if (!isActive) {
-        zone.classList.add('active');
-        btn.classList.add('active');
-        const inp = document.getElementById('scan-input-' + lineId);
-        inp.value = '';
-        inp.focus();
-        document.getElementById('scan-feedback-' + lineId).className = 'scan-feedback';
+/* ══ SCAN PAR LIGNE ════════════════════════════════════════════ */
+function toggleScan(id) {
+    const sz  = document.getElementById('sz-' + id);
+    const btn = document.getElementById('bsc-' + id);
+    const isOpen = sz.classList.contains('open');
+    // Fermer les autres
+    document.querySelectorAll('.scan-zone.open').forEach(z => z.classList.remove('open'));
+    document.querySelectorAll('.btn-sc.open').forEach(b => b.classList.remove('open'));
+    if (!isOpen) {
+        sz.classList.add('open');
+        btn.classList.add('open');
+        const inp = document.getElementById('si-' + id);
+        if (inp) { inp.value = ''; inp.focus(); }
+        const fb = document.getElementById('sfb-' + id);
+        if (fb) fb.className = 'scan-fb';
     }
 }
 
-// ════════════════════════════════════════════════════════
-// SOUMETTRE UN SCAN
-// ════════════════════════════════════════════════════════
-function submitScan(lineId) {
-    const inp      = document.getElementById('scan-input-' + lineId);
-    const feedback = document.getElementById('scan-feedback-' + lineId);
-    const barcode  = inp.value.trim();
-    if (!barcode) { inp.focus(); return; }
-
-    feedback.className = 'scan-feedback warning';
-    feedback.textContent = '⏳ Vérification...';
+function submitScan(id) {
+    const inp = document.getElementById('si-' + id);
+    const fb  = document.getElementById('sfb-' + id);
+    const bc  = inp ? inp.value.trim() : '';
+    if (!bc) { if (inp) inp.focus(); return; }
+    fb.className = 'scan-fb war'; fb.textContent = '⏳ Vérification...';
 
     fetch('{{ route("chauffeur.scan") }}', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
-        body: JSON.stringify({ line_id: lineId, barcode: barcode, chauffeur_id: CHAUFFEUR_ID })
+        method:'POST', credentials:'same-origin',
+        headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
+        body: JSON.stringify({ line_id:id, barcode:bc, chauffeur_id:CID })
     })
-    .then(r => r.json())
-    .then(d => {
+    .then(r=>r.json())
+    .then(d=>{
         if (d.matched) {
-            feedback.className = 'scan-feedback success';
-            feedback.textContent = d.message;
-            setTimeout(() => markRecuperee(lineId), 1200);
-        }  else if (d.barcode_scanned) {
-    // Code inconnu — associer directement sans confirmation
-    feedback.className = 'scan-feedback warning';
-    feedback.textContent = '🔄 Code inconnu, association en cours...';
-    confirmScan(lineId, d.barcode_scanned);
-} else {
-            feedback.className = 'scan-feedback error';
-            feedback.textContent = '❌ Erreur : ' + (d.message || 'Réessayez');
-        }
-    })
-    .catch(() => {
-        feedback.className = 'scan-feedback error';
-        feedback.textContent = '❌ Erreur réseau';
-    });
-}
-
-// ════════════════════════════════════════════════════════
-// CONFIRMER ASSOCIATION BARCODE
-// ════════════════════════════════════════════════════════
-function confirmScan(lineId, barcode) {
-    fetch('{{ route("chauffeur.scan.confirm") }}', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
-        body: JSON.stringify({ line_id: lineId, barcode: barcode })
-    })
-    .then(r => r.json())
-    .then(d => {
-        if (d.success) {
-            const feedback = document.getElementById('scan-feedback-' + lineId);
-            feedback.className = 'scan-feedback success';
-            feedback.textContent = d.message;
-            setTimeout(() => markRecuperee(lineId), 1200);
-        }
-    });
-}
-
-// ════════════════════════════════════════════════════════
-// MARQUER COMME RÉCUPÉRÉE SANS SCAN
-// ════════════════════════════════════════════════════════
-function markDone(lineId) {
-    if (!confirm('Marquer cette pièce comme récupérée ?')) return;
-
-    fetch('{{ route("planning.statut") }}', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
-        body: JSON.stringify({ line_id: lineId, statut: 'recupere' })
-    })
-    .then(r => r.json())
-    .then(d => { if (d.success) markRecuperee(lineId); });
-}
-
-// ════════════════════════════════════════════════════════
-// MISE À JOUR VISUELLE
-// ════════════════════════════════════════════════════════
-function markRecuperee(lineId) {
-    const card = document.getElementById('article-card-' + lineId);
-    if (!card) return;
-    card.classList.add('recupere');
-    const dot = card.querySelector('.status-dot');
-    if (dot) { dot.className = 'status-dot recupere'; }
-    const btns = card.querySelector('.action-btns');
-    if (btns) {
-        
-    btns.innerHTML = '<div class="result-recupere"><i class="fas fa-check-circle"></i> Récupérée</div>' +
-    '<button id="btn-livre-' + lineId + '" onclick="livreClient(' + lineId + ')" ' +
-    'style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:white;' +
-    'border:1px solid #a78bfa;border-radius:6px;padding:4px 10px;' +
-    'font-size:0.72rem;font-weight:700;cursor:pointer;margin-top:4px;">&#128682; Confirmer la Livraison au client</button>' +
-    '<button onclick="annulerScan(' + lineId + ')" ' +
-    'style="background:rgba(220,53,69,0.15);color:#ff8888;border:1px solid rgba(220,53,69,0.3);' +
-    'border-radius:6px;padding:4px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;margin-top:4px;">↩ Annuler</button>';
-
-    }
-    const zone = document.getElementById('scan-zone-' + lineId);
-    if (zone) zone.classList.remove('active');
-
-    // Mettre à jour le compteur du groupe
-    updateGroupCounter(card);
-}
-
-function updateGroupCounter(card) {
-    const group = card.closest('.fourn-group');
-    if (!group) return;
-    const total   = group.querySelectorAll('.article-card').length;
-    const recupere = group.querySelectorAll('.article-card.recupere').length;
-    const counter  = group.querySelector('.fourn-count');
-    if (counter) {
-        counter.textContent = recupere + '/' + total;
-        if (recupere === total) counter.classList.add('done');
-    }
-}
-
-// ════════════════════════════════════════════════════════
-// SIGNALER UN PROBLÈME
-// ════════════════════════════════════════════════════════
-function openProbleme(lineId, code, name) {
-    currentProblemeLineId = lineId;
-    document.getElementById('probleme-article-info').textContent = code + ' — ' + name;
-    document.getElementById('probleme-notes-input').value = '';
-    new bootstrap.Modal(document.getElementById('problemeModal')).show();
-    setTimeout(() => document.getElementById('probleme-notes-input').focus(), 400);
-}
-
-document.getElementById('probleme-confirm-btn').addEventListener('click', function () {
-    const notes = document.getElementById('probleme-notes-input').value.trim();
-    if (!notes) {
-        document.getElementById('probleme-notes-input').classList.add('is-invalid');
-        return;
-    }
-    this.disabled = true;
-    this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Envoi...';
-
-    fetch('{{ route("chauffeur.probleme") }}', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
-        body: JSON.stringify({ line_id: currentProblemeLineId, notes: notes })
-    })
-    .then(r => r.json())
-    .then(d => {
-        if (d.success) {
-            bootstrap.Modal.getInstance(document.getElementById('problemeModal')).hide();
-            const card = document.getElementById('article-card-' + currentProblemeLineId);
-            if (card) {
-                card.classList.add('probleme');
-                const btns = card.querySelector('.action-btns');
-                if (btns) btns.innerHTML = `<div class="result-probleme"><i class="fas fa-exclamation-triangle me-1"></i>${notes}</div>`;
-            }
-        }
-    })
-    .finally(() => {
-        this.disabled = false;
-        this.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Envoyer';
-    });
-});
-
-// ════════════════════════════════════════════════════════
-// SCAN GLOBAL (FAB)
-// ════════════════════════════════════════════════════════
-function openGlobalScan() {
-    document.getElementById('globalScanOverlay').classList.add('active');
-    document.getElementById('globalScanFeedback').innerHTML = '';
-    setTimeout(() => document.getElementById('globalScanInput').focus(), 100);
-}
-
-function closeGlobalScan() {
-    document.getElementById('globalScanOverlay').classList.remove('active');
-    document.getElementById('globalScanInput').value = '';
-    document.getElementById('globalScanFeedback').innerHTML = '';
-}
-
-document.getElementById('globalScanInput').addEventListener('keydown', function (e) {
-    if (e.key !== 'Enter') return;
-    const barcode  = this.value.trim();
-    const feedback = document.getElementById('globalScanFeedback');
-    if (!barcode) return;
-
-    feedback.innerHTML = '<span style="color:#ffc107;">⏳ Recherche...</span>';
-
-    // Chercher parmi toutes les cartes d'articles non récupérées
-    const allCodes = document.querySelectorAll('[data-barcode]');
-    let found = null;
-
-    allCodes.forEach(el => {
-        if (el.dataset.barcode === barcode && !el.closest('.article-card').classList.contains('recupere')) {
-            found = el.dataset.lineId;
-        }
-    });
-
-    if (found) {
-        closeGlobalScan();
-        // Ouvrir et pré-remplir le scan de la ligne trouvée
-        const zone = document.getElementById('scan-zone-' + found);
-        const btn  = document.getElementById('btn-scan-' + found);
-        if (zone) {
-            zone.classList.add('active');
-            if (btn) btn.classList.add('active');
-            const inp = document.getElementById('scan-input-' + found);
-            if (inp) { inp.value = barcode; }
-            submitScan(found);
-            // Scroller vers la carte
-            document.getElementById('article-card-' + found)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-    } else {
-        feedback.innerHTML = '<span style="color:#ff8888;">❌ Code-barres non trouvé dans votre tournée du jour</span>';
-        this.value = '';
-    }
-});
-
-// ════════════════════════════════════════════════════════
-// AUTO-ASSIGNATION
-// ════════════════════════════════════════════════════════
-function selfAssign(lineId) {
-    var btn = document.getElementById('btn-assign-' + lineId);
-    if (!btn) return;
-
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>...';
-
-    fetch('{{ route("chauffeur.self_assign") }}', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
-        body: JSON.stringify({ line_id: lineId, chauffeur_id: CHAUFFEUR_ID })
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-        if (d.success) {
-            // Masquer la carte de la section "non assignées"
-            var card = document.getElementById('nonassign-card-' + lineId);
-            if (card) {
-                card.style.transition = 'opacity 0.3s';
-                card.style.opacity = '0';
-                setTimeout(function() {
-                    card.style.display = 'none';
-                    // Recharger la page pour mettre à jour les deux sections
-                    setTimeout(function() { location.reload(); }, 500);
-                }, 300);
-            }
+            fb.className='scan-fb ok'; fb.textContent=d.message;
+            setTimeout(()=>markRec(id), 900);
+        } else if (d.barcode_scanned) {
+            fb.className='scan-fb war'; fb.textContent='🔄 Association en cours...';
+            confirmScan(id, d.barcode_scanned);
         } else {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-hand-point-right me-1"></i> Je prends';
+            fb.className='scan-fb err'; fb.textContent='❌ '+(d.message||'Réessayez');
+        }
+    })
+    .catch(()=>{ fb.className='scan-fb err'; fb.textContent='❌ Erreur réseau'; });
+}
+
+function confirmScan(id, bc) {
+    fetch('{{ route("chauffeur.scan.confirm") }}', {
+        method:'POST', credentials:'same-origin',
+        headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
+        body: JSON.stringify({ line_id:id, barcode:bc })
+    })
+    .then(r=>r.json())
+    .then(d=>{
+        if (d.success) {
+            const fb=document.getElementById('sfb-'+id);
+            if (fb){fb.className='scan-fb ok'; fb.textContent=d.message;}
+            setTimeout(()=>markRec(id), 900);
+        }
+    });
+}
+
+/* ══ ✓ BOUTON CHECK VERT (sans scan) ══════════════════════════ */
+function markDone(id) {
+    if (!confirm('Marquer comme récupérée sans scanner ?')) return;
+    fetch('{{ route("planning.statut") }}', {
+        method:'POST', credentials:'same-origin',
+        headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
+        body: JSON.stringify({ line_id:id, statut:'recupere' })
+    })
+    .then(r=>r.json())
+    .then(d=>{ if (d.success) markRec(id); });
+}
+
+/* ══ MISE À JOUR VISUELLE ═══════════════════════════════════════
+   Affiche : ✅ Récupérée | 🚪 Livré client | ↩ Annuler
+═══════════════════════════════════════════════════════════════ */
+function markRec(id) {
+    const card = document.getElementById('ac-' + id);
+    if (!card) return;
+
+    card.classList.remove('prob');
+    card.classList.add('done');
+
+    // 1. Cacher les 3 boutons d'action
+    const arow = document.getElementById('arow-' + id);
+if (arow) arow.style.setProperty('display', 'none', 'important');
+
+    // 2. Fermer la zone de scan
+    const sz = document.getElementById('sz-' + id);
+    if (sz) sz.classList.remove('open');
+
+    // 3. Afficher le bloc post-récupération (déjà dans le HTML, juste caché)
+const post = document.getElementById('post-' + id);
+if (post) post.classList.add('visible');
+
+    // 4. Màj badge groupe fournisseur
+    updateBadge(card);
+}
+
+function updateBadge(card) {
+    const fc    = card.closest('.fc');
+    if (!fc) return;
+    const total = fc.querySelectorAll('.ac').length;
+    const done  = fc.querySelectorAll('.ac.done').length;
+    const badge = fc.querySelector('.fc-badge');
+    if (!badge) return;
+    if (done === total) { badge.className='fc-badge d'; badge.textContent='✅ '+total; }
+    else                { badge.className='fc-badge p'; badge.textContent='⏳ '+(total-done); }
+}
+
+/* ══ 🚪 LIVRÉ DIRECTEMENT AU CLIENT ═══════════════════════════ */
+function livreClient(id) {
+    if (!confirm('Confirmer la livraison directe au client ?')) return;
+    const btn = document.getElementById('bliv-' + id);
+    if (btn) { btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> En cours...'; }
+
+    fetch('{{ route("chauffeur.livre_client") }}', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
+        body: JSON.stringify({ line_id:id, chauffeur_id:CID })
+    })
+    .then(r=>r.json())
+    .then(d=>{
+        if (d.success) {
+            const post = document.getElementById('post-' + id);
+            if (post) post.innerHTML = '<div class="res-ok"><i class="fas fa-check-circle"></i> Livré directement au client ✅</div>';
+            const res = document.getElementById('res-' + id);
+            if (res) res.style.display = 'none';
+        } else {
+            if (btn) { btn.disabled=false; btn.innerHTML='🚪 Livré directement au client'; }
             alert(d.error || 'Erreur');
         }
     })
-    .catch(function() {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-hand-point-right me-1"></i> Je prends';
+    .catch(()=>{
+        if (btn) { btn.disabled=false; btn.innerHTML='🚪 Livré directement au client'; }
         alert('Erreur réseau');
     });
 }
 
-// Écouter les scans clavier depuis le Panasonic (il envoie un Enter après le code)
-document.addEventListener('keydown', function (e) {
-    const overlay = document.getElementById('globalScanOverlay');
-    // Si l'overlay n'est pas ouvert et qu'on appuie sur une touche alphanumérique
-    // depuis le scanner → ouvrir automatiquement le scan global
-    if (!overlay.classList.contains('active') &&
-        e.key.length === 1 &&
-        !e.ctrlKey && !e.altKey &&
-        !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
-        openGlobalScan();
-        document.getElementById('globalScanInput').value = e.key;
+/* ══ ↩ ANNULER SCAN ════════════════════════════════════════════ */
+function annulerScan(id) {
+    if (!confirm('Annuler et remettre en attente ?')) return;
+    fetch('{{ route("planning.statut") }}', {
+        method:'POST', credentials:'same-origin',
+        headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
+        body: JSON.stringify({ line_id:id, statut:'en_attente' })
+    })
+    .then(r=>r.json())
+    .then(d=>{ if (d.success) location.reload(); });
+}
+
+/* ══ PROBLÈME ══════════════════════════════════════════════════ */
+function openProbleme(id, code, name) {
+    probLineId = id;
+    document.getElementById('prob-info').textContent = code + ' — ' + name;
+    document.getElementById('prob-notes').value = '';
+    document.getElementById('prob-notes').classList.remove('is-invalid');
+    new bootstrap.Modal(document.getElementById('probModal')).show();
+    setTimeout(()=>document.getElementById('prob-notes').focus(), 400);
+}
+document.getElementById('prob-send').addEventListener('click', function() {
+    const notes = document.getElementById('prob-notes').value.trim();
+    if (!notes) { document.getElementById('prob-notes').classList.add('is-invalid'); return; }
+    this.disabled=true; this.innerHTML='<i class="fas fa-spinner fa-spin me-1"></i>Envoi...';
+    fetch('{{ route("chauffeur.probleme") }}', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
+        body: JSON.stringify({ line_id:probLineId, notes:notes })
+    })
+    .then(r=>r.json())
+    .then(d=>{
+        if (d.success) {
+            bootstrap.Modal.getInstance(document.getElementById('probModal')).hide();
+            const card = document.getElementById('ac-' + probLineId);
+            if (card) {
+                card.classList.add('prob');
+                const arow = document.getElementById('arow-' + probLineId);
+                if (arow) arow.innerHTML = '<div class="res-prob"><i class="fas fa-exclamation-triangle me-1"></i>'+notes+'</div>';
+            }
+        }
+    })
+    .finally(()=>{ this.disabled=false; this.innerHTML='<i class="fas fa-paper-plane me-1"></i>Envoyer'; });
+});
+
+/* ══ AUTO-ASSIGNATION ══════════════════════════════════════════ */
+function selfAssign(id, cardId, btnId) {
+    const btn  = document.getElementById(btnId);
+    const card = document.getElementById(cardId);
+    if (btn) { btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin me-1"></i> Attribution...'; }
+    fetch('{{ route("chauffeur.self_assign") }}', {
+        method:'POST', credentials:'same-origin',
+        headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
+        body: JSON.stringify({ line_id:id, chauffeur_id:CID })
+    })
+    .then(r=>r.json())
+    .then(d=>{
+        if (d.success) {
+            if (card) { card.style.opacity='0'; card.style.transition='opacity .3s'; }
+            setTimeout(()=>location.reload(), 500);
+        } else {
+            if (btn) { btn.disabled=false; btn.innerHTML='<i class="fas fa-hand-point-right"></i> Je prends cette pièce'; }
+        }
+    });
+}
+
+/* ══ SCAN GLOBAL FAB ═══════════════════════════════════════════ */
+function openGS() {
+    document.getElementById('gsOverlay').classList.add('open');
+    document.getElementById('gsFb').innerHTML='';
+    setTimeout(()=>document.getElementById('gsInput').focus(), 100);
+}
+function closeGS() {
+    document.getElementById('gsOverlay').classList.remove('open');
+    document.getElementById('gsInput').value='';
+    document.getElementById('gsFb').innerHTML='';
+}
+document.getElementById('gsInput').addEventListener('keydown', function(e) {
+    if (e.key !== 'Enter') return;
+    const bc = this.value.trim();
+    const fb = document.getElementById('gsFb');
+    if (!bc) return;
+    fb.innerHTML='<span style="color:var(--amber);">⏳ Recherche...</span>';
+    const els = document.querySelectorAll('[data-barcode]');
+    let found = null;
+    els.forEach(el=>{ if (el.dataset.barcode===bc && !el.closest('.ac').classList.contains('done')) found=el.dataset.lineId; });
+    if (found) {
+        closeGS(); switchTab('restant');
+        toggleScan(found);
+        const inp = document.getElementById('si-' + found);
+        if (inp) inp.value = bc;
+        submitScan(found);
+        document.getElementById('ac-'+found)?.scrollIntoView({behavior:'smooth',block:'center'});
+    } else {
+        fb.innerHTML='<span style="color:var(--red);">❌ Code non trouvé dans votre tournée</span>';
+        this.value='';
     }
 });
 
-// ── Livraison directe client ──────────────────────────────────
-function livreClient(lineId) {
-    if (!confirm('Confirmer que cette pièce a été livrée directement au client ?')) return;
-
-    const btn = document.getElementById('btn-livre-' + lineId);
-    if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+/* ══ CLAVIER PANASONIC (auto-open global scan) ════════════════ */
+document.addEventListener('keydown', function(e) {
+    const ov = document.getElementById('gsOverlay');
+    if (!ov.classList.contains('open') && e.key.length===1 && !e.ctrlKey && !e.altKey &&
+        !['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) {
+        openGS();
+        document.getElementById('gsInput').value = e.key;
     }
+});
 
-    fetch('{{ route("chauffeur.livre_client") }}', {
-        method: 'POST',
-        headers: { 
-            'Content-Type': 'application/json', 
-            'X-CSRF-TOKEN': CSRF 
-        },
-        body: JSON.stringify({ 
-            line_id: lineId, 
-            chauffeur_id: CHAUFFEUR_ID 
-        })
-    })
-    .then(r => r.json())
-    .then(d => {
-        if (d.success) {
-            const card = document.getElementById('article-card-' + lineId);
-            if (card) {
-                card.classList.add('recupere');
-                card.innerHTML = `
-                    <div class="result-recupere">
-                        <i class="fas fa-check-circle"></i>
-                        <strong>Livré directement au client</strong>
-                    </div>
-                `;
-                updateGroupCounter(card);
-            }
-        } else {
-            alert(d.error || 'Erreur lors de la mise à jour');
-        }
-    })
-    .catch(() => alert('Erreur réseau'))
-    .finally(() => {
-        if (btn) btn.disabled = false;
-    });
-}
-
-
-
-function annulerScan(lineId) {
-    if (!confirm('Annuler le scan et remettre en attente ?')) return;
-
-    fetch('{{ route("planning.statut") }}', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
-        body: JSON.stringify({ line_id: lineId, statut: 'en_attente' })
-    })
-    .then(r => r.json())
-    .then(d => {
-        if (d.success) {
-            const card = document.getElementById('article-card-' + lineId);
-            if (card) {
-                card.classList.remove('recupere');
-                const dot = card.querySelector('.status-dot');
-                if (dot) dot.className = 'status-dot en_attente';
-                const btns = card.querySelector('.action-btns');
-                if (btns) {
-                    btns.innerHTML =
-                        '<button class="btn-scan" id="btn-scan-' + lineId + '" onclick="toggleScan(' + lineId + ')">' +
-                        '<i class="fas fa-barcode me-1"></i>Scanner</button>' +
-                        '<button class="btn-done" onclick="markDone(' + lineId + ')">✓</button>' +
-                        '<button class="btn-probleme" onclick="openProbleme(' + lineId + ', \'\', \'\')">⚠</button>';
-                }
-                updateGroupCounter(card);
-            }
-        }
-    });
-}
+// Auto-refresh 60s
+// setTimeout(()=>location.reload(), 60000);
 </script>
 </body>
 </html>
