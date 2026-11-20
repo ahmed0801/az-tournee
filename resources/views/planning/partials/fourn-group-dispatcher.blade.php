@@ -2,7 +2,7 @@
 {{-- id stable (créneau + fournisseur) : l'état ouvert/fermé survit aux mises à jour automatiques --}}
 @php $groupId = 'disp-' . substr(md5((isset($slotKey) ? $slotKey : '') . '|' . $fournisseurName), 0, 12); @endphp
 
-<div class="fourn-card closed" data-group="{{ $groupId }}">
+<div class="fourn-card" data-group="{{ $groupId }}">
     <div class="fourn-header d-flex justify-content-between align-items-center"
          onclick="toggleGroup('{{ $groupId }}')">
         <span>
@@ -29,7 +29,7 @@
         </div>
     </div>
 
-    <div id="group-{{ $groupId }}" style="display:none;">
+    <div id="group-{{ $groupId }}">
         @foreach($lignes as $ligne)
         <div class="line-row" id="line-row-{{ $ligne->id }}"
              data-search-code="{{ $ligne->article_code }}"

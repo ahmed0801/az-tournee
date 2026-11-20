@@ -106,6 +106,7 @@
         .btn-filter:hover { background: #2d4a8a; transform: translateY(-1px); }
         .btn-reset { background: none; border: 1.5px solid #e2e8f0; color: #6b7a99; border-radius: 8px; padding: 7px 16px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; display: flex; align-items: center; gap: 5px; }
         .btn-reset:hover { border-color: #6b7a99; color: #1a2b4a; }
+        .slot-toggle.closed .slot-chev { transform: rotate(-90deg); }
         .fourn-chev { transition: transform .2s; }
         .fourn-card.closed .fourn-chev { transform: rotate(-90deg); }
         .fourn-card.closed .fourn-header { border-bottom: none; }
@@ -440,8 +441,8 @@ $monthFromStr = now()->copy()->startOfMonth()->format('Y-m-d');
             <i class="fas fa-times me-1"></i> Effacer
         </button>
         <span class="ms-auto d-flex gap-1">
-            <button onclick="setAllGroups(true)" class="btn btn-sm btn-outline-primary px-3" title="Déplier tous les fournisseurs"><i class="fas fa-angle-double-down me-1"></i> Tout déplier</button>
-            <button onclick="setAllGroups(false)" class="btn btn-sm btn-outline-primary px-3" title="Replier tous les fournisseurs"><i class="fas fa-angle-double-up me-1"></i> Tout replier</button>
+            <button onclick="setAllGroups(true)" class="btn btn-sm btn-outline-primary px-3" title="Déplier toutes les tournées"><i class="fas fa-angle-double-down me-1"></i> Tout déplier</button>
+            <button onclick="setAllGroups(false)" class="btn btn-sm btn-outline-primary px-3" title="Replier toutes les tournées"><i class="fas fa-angle-double-up me-1"></i> Tout replier</button>
         </span>
     </div>
 
@@ -461,7 +462,8 @@ $monthFromStr = now()->copy()->startOfMonth()->format('Y-m-d');
     @foreach($allCreneaux as $slotKey => $slotInfo)
         @php $lignesCreneau = $lignesParCreneau[$slotKey] ?? collect(); @endphp
         @if($lignesCreneau->isNotEmpty())
-        <div class="{{ $slotInfo['color'] }}" style="{{ !$loop->first ? 'margin-top:24px;' : '' }}">
+        @php $slotId = 'slot-' . substr(md5($slotKey), 0, 12); @endphp
+        <div class="{{ $slotInfo['color'] }} slot-toggle closed" data-slot="{{ $slotId }}" onclick="toggleSlot('{{ $slotId }}')" style="cursor:pointer;{{ !$loop->first ? 'margin-top:24px;' : '' }}">
             {{ $slotInfo['icon'] }}
             @if($modeHistorique)
                 📅 {{ \Carbon\Carbon::parse($slotKey)->format('d/m/Y') }}
@@ -469,7 +471,9 @@ $monthFromStr = now()->copy()->startOfMonth()->format('Y-m-d');
                 Tournée {{ $slotInfo['label'] }}
             @endif
             <span class="badge bg-white text-dark ms-2">{{ $lignesCreneau->flatten()->count() }} pièce(s)</span>
+            <i class="fas fa-chevron-down float-end mt-1 slot-chev" style="transition:transform .2s;"></i>
         </div>
+        <div class="slot-body" id="{{ $slotId }}" style="display:none;">
         @foreach($lignesCreneau as $fournisseurName => $lignes)
             @include('planning.partials.fourn-group-dispatcher', [
                 'fournisseurName' => $fournisseurName,
@@ -479,6 +483,7 @@ $monthFromStr = now()->copy()->startOfMonth()->format('Y-m-d');
                 'modeHistorique'  => $modeHistorique ?? false,
             ])
         @endforeach
+        </div>
         @endif
     @endforeach
 
@@ -549,29 +554,44 @@ function updateStatut(lineId, statut) {
     });
 }
 
-// ── Groupes fournisseurs : TOUJOURS repliés à l'ouverture/rechargement de la page ; l'état n'est gardé qu'en mémoire (mises à jour auto) ──
-var openGroups = {};
-function saveGroups() {}
+// ── Tournées (créneaux) : FERMÉES par défaut ; fournisseurs : OUVERTS par défaut ──
+// L'état n'est gardé qu'en mémoire : chaque (re)chargement de la page repart tout fermé / fournisseurs ouverts,
+// mais les mises à jour automatiques conservent ce que vous avez ouvert ou fermé.
+var openSlots = {}, closedGroups = {};
+function searchActive() { return !!((searchPiece && searchPiece.value.trim()) || (searchVendeur && searchVendeur.value.trim())); }
+function paintSlot(h) {
+    var id = h.getAttribute('data-slot'), body = document.getElementById(id);
+    var closed = !openSlots[id] && !searchActive();   // une recherche en cours ouvre les tournées pour montrer les résultats
+    if (body) body.style.display = closed ? 'none' : '';
+    h.classList.toggle('closed', closed);
+}
 function paintGroup(card) {
     var id = card.getAttribute('data-group'), body = document.getElementById('group-' + id);
-    var closed = !openGroups[id];
+    var closed = !!closedGroups[id];
     if (body) body.style.display = closed ? 'none' : '';
     card.classList.toggle('closed', closed);
 }
-function applyGroupState() { document.querySelectorAll('.fourn-card[data-group]').forEach(paintGroup); }
+function applyGroupState() {
+    document.querySelectorAll('.slot-toggle[data-slot]').forEach(paintSlot);
+    document.querySelectorAll('.fourn-card[data-group]').forEach(paintGroup);
+}
+function toggleSlot(id) {
+    if (openSlots[id]) delete openSlots[id]; else openSlots[id] = 1;
+    var h = document.querySelector('.slot-toggle[data-slot="' + id + '"]');
+    if (h) paintSlot(h);
+}
 function toggleGroup(id) {
-    if (openGroups[id]) delete openGroups[id]; else openGroups[id] = 1;
-    saveGroups();
+    if (closedGroups[id]) delete closedGroups[id]; else closedGroups[id] = 1;
     var card = document.querySelector('.fourn-card[data-group="' + id + '"]');
     if (card) paintGroup(card);
 }
-function setAllGroups(open) {
-    document.querySelectorAll('.fourn-card[data-group]').forEach(function(c) {
-        var id = c.getAttribute('data-group');
-        if (open) openGroups[id] = 1; else delete openGroups[id];
-        paintGroup(c);
+function setAllGroups(open) {   // « Tout déplier » / « Tout replier » : agit sur les tournées (et rouvre les fournisseurs en dépliant)
+    document.querySelectorAll('.slot-toggle[data-slot]').forEach(function(h) {
+        var id = h.getAttribute('data-slot');
+        if (open) openSlots[id] = 1; else delete openSlots[id];
     });
-    saveGroups();
+    if (open) closedGroups = {};
+    applyGroupState();
 }
 
 function showToast(msg, type) {
@@ -929,6 +949,7 @@ function applySearch() {
         card.style.display = card.querySelectorAll('.line-row:not(.hidden)').length > 0 ? '' : 'none';
     });
 
+    document.querySelectorAll('.slot-toggle[data-slot]').forEach(paintSlot);
     if (piece || vendeur) {
         searchCount.textContent = visible + ' / ' + total + ' pièce(s)';
         searchCount.style.color = visible === 0 ? '#dc3545' : '#198754';
