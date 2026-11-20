@@ -1,7 +1,8 @@
 {{-- resources/views/planning/partials/fourn-group-dispatcher.blade.php --}}
-@php $groupId = 'disp-' . Str::slug($fournisseurName) . '-' . $loop->index; @endphp
+{{-- id stable (créneau + fournisseur) : l'état ouvert/fermé survit aux mises à jour automatiques --}}
+@php $groupId = 'disp-' . substr(md5((isset($slotKey) ? $slotKey : '') . '|' . $fournisseurName), 0, 12); @endphp
 
-<div class="fourn-card">
+<div class="fourn-card closed" data-group="{{ $groupId }}">
     <div class="fourn-header d-flex justify-content-between align-items-center"
          onclick="toggleGroup('{{ $groupId }}')">
         <span>
@@ -15,15 +16,6 @@
             @if($adresse)
                 <small class="text-muted ms-2"><i class="fas fa-map-marker-alt"></i> {{ $adresse }}</small>
             @endif
-
-            @if(isset($modeHistorique) && $modeHistorique)
-    <span class="badge bg-warning text-dark ms-2" style="font-size:0.68rem;">
-        📅 {{ optional($lignes->first()->date_tournee)->format('d/m/Y') }}
-        &nbsp;·&nbsp; {{ $lignes->first()->slot }}
-    </span>
-@endif
-
-
         </span>
         <div class="d-flex align-items-center gap-2">
             @php
@@ -33,16 +25,16 @@
             <span class="badge {{ $recuperes === $total ? 'bg-success' : 'bg-secondary' }}">
                 {{ $recuperes }}/{{ $total }}
             </span>
-            <i class="fas fa-chevron-down text-muted"></i>
+            <i class="fas fa-chevron-down text-muted fourn-chev"></i>
         </div>
     </div>
 
-    <div id="group-{{ $groupId }}">
+    <div id="group-{{ $groupId }}" style="display:none;">
         @foreach($lignes as $ligne)
         <div class="line-row" id="line-row-{{ $ligne->id }}"
-     data-search-code="{{ strtolower($ligne->article_code) }}"
-     data-search-name="{{ strtolower($ligne->article_name) }}"
-     data-search-vendeur="{{ strtolower($ligne->created_by_name ?? '') }}">
+             data-search-code="{{ $ligne->article_code }}"
+             data-search-name="{{ $ligne->article_name }}"
+             data-search-vendeur="{{ $ligne->created_by_name }}">
             {{-- Code article --}}
             <span class="article-code">{{ $ligne->article_code }}</span>
 
@@ -82,9 +74,6 @@
                 @endforeach
             </select>
 
-
-
-
             {{-- Statut --}}
             @php
                 $bgColor = '#f3f4f6';
@@ -105,41 +94,6 @@
                 <option value="livre_client" {{ $ligne->statut === 'livre_client' ? 'selected' : '' }}>🚪 Livré client</option>
                 <option value="probleme"   {{ $ligne->statut === 'probleme'   ? 'selected' : '' }}>⚠️ Problème</option>
             </select>
-
-
-
-
-
-            {{-- Changer le créneau --}}
-{{-- Changer le créneau --}}
-<select class="form-select form-select-sm slot-select"
-        style="width:110px; font-size:0.72rem;"
-        data-line-id="{{ $ligne->id }}"
-        data-site-id="{{ $ligne->site_id }}"
-        onchange="updateSlot({{ $ligne->id }}, this.value)">
-    <option value="{{ $ligne->slot }}" selected>{{ $ligne->slot }}</option>
-</select>
-
-{{-- Changer la date --}}
-<input type="date"
-       class="form-control form-control-sm"
-       style="width:130px; font-size:0.72rem;"
-       value="{{ $ligne->date_tournee->format('Y-m-d') }}"
-       onchange="updateDate({{ $ligne->id }}, this.value)">
-
-{{-- Supprimer --}}
-<button onclick="deleteLine({{ $ligne->id }}, this)"
-        style="background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;
-               border-radius:6px;font-size:0.7rem;font-weight:600;
-               padding:3px 8px;cursor:pointer;">
-    🗑 retirer
-</button>
-
-
-
-
-
-
 
             {{-- Heure scan --}}
             @if($ligne->scanned_at)

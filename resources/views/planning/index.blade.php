@@ -106,6 +106,19 @@
         .btn-filter:hover { background: #2d4a8a; transform: translateY(-1px); }
         .btn-reset { background: none; border: 1.5px solid #e2e8f0; color: #6b7a99; border-radius: 8px; padding: 7px 16px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; display: flex; align-items: center; gap: 5px; }
         .btn-reset:hover { border-color: #6b7a99; color: #1a2b4a; }
+        .fourn-chev { transition: transform .2s; }
+        .fourn-card.closed .fourn-chev { transform: rotate(-90deg); }
+        .fourn-card.closed .fourn-header { border-bottom: none; }
+
+        /* ── Bouton actualiser fixe ───────────────────────── */
+        #live-bar { position: fixed; right: 16px; bottom: 16px; z-index: 1050; display: flex; align-items: center; gap: 10px;
+                    background: white; border-radius: 30px; padding: 6px 8px 6px 14px; box-shadow: 0 4px 20px rgba(30,45,74,.25); font-size: .75rem; color: #6b7a99; }
+        #live-bar .form-check-input { cursor: pointer; margin: 0; }
+        #live-bar label { cursor: pointer; margin: 0; white-space: nowrap; }
+        #btn-live { border: none; border-radius: 20px; background: #1e2d4a; color: white; font-weight: 700; font-size: .78rem; padding: 7px 16px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+        #btn-live:hover { background: #2d4a8a; }
+        #btn-live.pending { background: #e67e00; animation: livePulse 1.4s infinite; }
+        @keyframes livePulse { 0%,100% { box-shadow: 0 0 0 0 rgba(230,126,0,.5); } 50% { box-shadow: 0 0 0 8px rgba(230,126,0,0); } }
         .filter-result-count { font-size: 0.75rem; color: #6b7a99; margin-left: auto; }
     </style>
 </head>
@@ -152,9 +165,7 @@ $monthFromStr = now()->copy()->startOfMonth()->format('Y-m-d');
                 @endif
             </span>
             <div class="d-flex align-items-center gap-3">
-                @if($stats['total'] > 0)
-                    <span style="color:rgba(255,255,255,0.7);font-size:0.75rem;">{{ $stats['total'] }} pièce(s)</span>
-                @endif
+                <span id="hdr-total" style="color:rgba(255,255,255,0.7);font-size:0.75rem;">@if($stats['total'] > 0){{ $stats['total'] }} pièce(s)@endif</span>
                 <i class="fas fa-chevron-down text-white" id="filter-chevron" style="transition:transform 0.2s;font-size:0.8rem;"></i>
             </div>
         </div>
@@ -300,7 +311,7 @@ $monthFromStr = now()->copy()->startOfMonth()->format('Y-m-d');
     </div>
 
     {{-- ── STATS ───────────────────────────────────────────────── --}}
-    <div class="row g-2 mb-3">
+    <div class="row g-2 mb-3" id="stats-zone">
         <div class="col"><div class="stat-card" style="background:#6c757d;"><h3>{{ $stats['total'] }}</h3><p>Total</p></div></div>
         <div class="col"><div class="stat-card" style="background:#e67e00;"><h3>{{ $stats['non_assignees'] }}</h3><p>⚠️ Non assignées</p></div></div>
         <div class="col"><div class="stat-card" style="background:#0d6efd;"><h3>{{ $stats['en_attente'] }}</h3><p>En attente</p></div></div>
@@ -327,6 +338,7 @@ $monthFromStr = now()->copy()->startOfMonth()->format('Y-m-d');
 
 
 
+<div id="retard-zone">
 @if($lignesRetard > 0)
 <div id="retard-banner" style="
     background:linear-gradient(135deg,#7f1d1d,#dc2626);
@@ -354,8 +366,10 @@ $monthFromStr = now()->copy()->startOfMonth()->format('Y-m-d');
         </button>
     </div>
 </div>
+@endif
+</div>
 
-{{-- Popup détail --}}
+{{-- Popup détail (toujours présent : des retards peuvent apparaître après une mise à jour automatique) --}}
 <div id="retard-popup" style="
     display:none; position:fixed; top:0; left:0; right:0; bottom:0;
     background:rgba(0,0,0,0.5); z-index:9998; align-items:center; justify-content:center;">
@@ -403,7 +417,6 @@ $monthFromStr = now()->copy()->startOfMonth()->format('Y-m-d');
         </div>
     </div>
 </div>
-@endif
 
 
 
@@ -426,6 +439,10 @@ $monthFromStr = now()->copy()->startOfMonth()->format('Y-m-d');
         <button onclick="clearSearch()" class="btn btn-sm btn-outline-secondary px-3">
             <i class="fas fa-times me-1"></i> Effacer
         </button>
+        <span class="ms-auto d-flex gap-1">
+            <button onclick="setAllGroups(true)" class="btn btn-sm btn-outline-primary px-3" title="Déplier tous les fournisseurs"><i class="fas fa-angle-double-down me-1"></i> Tout déplier</button>
+            <button onclick="setAllGroups(false)" class="btn btn-sm btn-outline-primary px-3" title="Replier tous les fournisseurs"><i class="fas fa-angle-double-up me-1"></i> Tout replier</button>
+        </span>
     </div>
 
     {{-- ── CRÉNEAUX ─────────────────────────────────────────────── --}}
@@ -440,6 +457,7 @@ $monthFromStr = now()->copy()->startOfMonth()->format('Y-m-d');
         }
     @endphp
 
+    <div id="planning-list">
     @foreach($allCreneaux as $slotKey => $slotInfo)
         @php $lignesCreneau = $lignesParCreneau[$slotKey] ?? collect(); @endphp
         @if($lignesCreneau->isNotEmpty())
@@ -455,6 +473,7 @@ $monthFromStr = now()->copy()->startOfMonth()->format('Y-m-d');
         @foreach($lignesCreneau as $fournisseurName => $lignes)
             @include('planning.partials.fourn-group-dispatcher', [
                 'fournisseurName' => $fournisseurName,
+                'slotKey'         => $slotKey,
                 'lignes'          => $lignes,
                 'chauffeurs'      => $chauffeurs,
                 'modeHistorique'  => $modeHistorique ?? false,
@@ -466,7 +485,17 @@ $monthFromStr = now()->copy()->startOfMonth()->format('Y-m-d');
     @if($lignesParCreneau->isEmpty() || $lignesParCreneau->flatten()->isEmpty())
         <div class="empty-slot">📭 Aucune pièce planifiée pour cette date</div>
     @endif
+    </div>
 
+</div>
+
+<div id="live-bar" class="d-print-none">
+    <span id="live-status">—</span>
+    <span class="form-check form-switch d-flex align-items-center gap-1 mb-0 ps-0">
+        <input class="form-check-input ms-0" type="checkbox" id="live-auto" checked>
+        <label for="live-auto" title="Mise à jour automatique toutes les 30 secondes, sans recharger la page">Auto</label>
+    </span>
+    <button id="btn-live" onclick="refreshNow(true)"><i class="fas fa-sync-alt" id="live-icon"></i> Actualiser</button>
 </div>
 
 <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -476,12 +505,14 @@ const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 
 // ── Toggle panel filtres ──────────────────────────────────────
 var filterOpen = true;
+try { if (localStorage.getItem('planning_filters_open') === '0') { filterOpen = false; document.getElementById('filter-body').style.display = 'none'; document.getElementById('filter-chevron').style.transform = 'rotate(-90deg)'; } } catch (e) {}
 function toggleFilters() {
     var body    = document.getElementById('filter-body');
     var chevron = document.getElementById('filter-chevron');
     filterOpen  = !filterOpen;
     body.style.display    = filterOpen ? 'block' : 'none';
     chevron.style.transform = filterOpen ? 'rotate(0deg)' : 'rotate(-90deg)';
+    try { localStorage.setItem('planning_filters_open', filterOpen ? '1' : '0'); } catch (e) {}
 }
 
 // ── Highlight du champ article si rempli ──────────────────────
@@ -518,9 +549,29 @@ function updateStatut(lineId, statut) {
     });
 }
 
+// ── Groupes fournisseurs : TOUJOURS repliés à l'ouverture/rechargement de la page ; l'état n'est gardé qu'en mémoire (mises à jour auto) ──
+var openGroups = {};
+function saveGroups() {}
+function paintGroup(card) {
+    var id = card.getAttribute('data-group'), body = document.getElementById('group-' + id);
+    var closed = !openGroups[id];
+    if (body) body.style.display = closed ? 'none' : '';
+    card.classList.toggle('closed', closed);
+}
+function applyGroupState() { document.querySelectorAll('.fourn-card[data-group]').forEach(paintGroup); }
 function toggleGroup(id) {
-    const body = document.getElementById('group-' + id);
-    body.style.display = body.style.display === 'none' ? 'block' : 'none';
+    if (openGroups[id]) delete openGroups[id]; else openGroups[id] = 1;
+    saveGroups();
+    var card = document.querySelector('.fourn-card[data-group="' + id + '"]');
+    if (card) paintGroup(card);
+}
+function setAllGroups(open) {
+    document.querySelectorAll('.fourn-card[data-group]').forEach(function(c) {
+        var id = c.getAttribute('data-group');
+        if (open) openGroups[id] = 1; else delete openGroups[id];
+        paintGroup(c);
+    });
+    saveGroups();
 }
 
 function showToast(msg, type) {
@@ -531,8 +582,74 @@ function showToast(msg, type) {
     setTimeout(() => t.remove(), 2500);
 }
 
-setTimeout(() => location.reload(), 30000);
+// ── Mise à jour automatique SANS recharger la page ────────────
+var LIVE_MS = 30000, liveBusy = false, livePending = false, lastSig = null, liveTimer = null;
+var liveAuto = document.getElementById('live-auto');
+try { if (localStorage.getItem('planning_auto') === '0') liveAuto.checked = false; } catch (e) {}
 
+function userIsBusy() {
+    var a = document.activeElement;
+    if (a && a.closest && a.closest('#planning-list') && /^(SELECT|INPUT|TEXTAREA)$/.test(a.tagName)) return true;  // liste déroulante / saisie en cours
+    var pop = document.getElementById('retard-popup');
+    if (pop && pop.style.display === 'flex') return true;
+    return false;
+}
+function setLiveStatus(txt) { document.getElementById('live-status').textContent = txt; }
+function zonesSig(d) {
+    var g = function(id) { var e = d.getElementById(id); return e ? e.innerHTML : ''; };
+    return g('planning-list') + '|' + g('stats-zone') + '|' + g('retard-zone');
+}
+
+function refreshNow(force) {
+    if (liveBusy) return;
+    if (!force && (document.hidden || userIsBusy())) { if (userIsBusy()) markPending(true); return; }
+    liveBusy = true;
+    document.getElementById('live-icon').classList.add('fa-spin');
+    var url = location.href.replace(/#.*$/, '');
+    fetch(url, { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'text/html' } })
+        .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+        .then(function(html) {
+            var doc = new DOMParser().parseFromString(html, 'text/html');
+            if (!doc.getElementById('planning-list')) throw new Error('page inattendue (session expirée ?)');
+            var sig = zonesSig(doc);
+            if (sig !== lastSig) {
+                if (!force && userIsBusy()) { markPending(true); return; }   // l'utilisateur a pris la main entre-temps
+                var y = window.scrollY;
+                swap('planning-list', doc); swap('stats-zone', doc); swap('retard-zone', doc);
+                var ht = doc.getElementById('hdr-total'); if (ht) document.getElementById('hdr-total').textContent = ht.textContent;
+                applyGroupState(); initSlotSelects(); applySearch();
+                window.scrollTo(0, y);
+                lastSig = sig;
+            }
+            markPending(false);
+            setLiveStatus('Mis à jour ' + new Date().toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit', second: '2-digit'}));
+        })
+        .catch(function(e) { setLiveStatus('⚠️ Échec (' + e.message + ')'); })
+        .then(function() { liveBusy = false; document.getElementById('live-icon').classList.remove('fa-spin'); });
+}
+function swap(id, doc) {
+    var cur = document.getElementById(id), nw = doc.getElementById(id);
+    if (cur && nw) cur.innerHTML = nw.innerHTML;
+}
+function markPending(on) {
+    livePending = on;
+    document.getElementById('btn-live').classList.toggle('pending', on);
+    if (on) setLiveStatus('Nouvelles données disponibles');
+}
+function liveSchedule() {
+    clearInterval(liveTimer);
+    if (liveAuto.checked) liveTimer = setInterval(function() { refreshNow(false); }, LIVE_MS);
+}
+liveAuto.addEventListener('change', function() {
+    try { localStorage.setItem('planning_auto', this.checked ? '1' : '0'); } catch (e) {}
+    liveSchedule();
+    setLiveStatus(this.checked ? 'Auto activé' : 'Auto désactivé');
+});
+// quand on quitte un champ alors que des données attendaient : on les applique
+document.addEventListener('focusout', function() { if (livePending) setTimeout(function() { if (!userIsBusy()) refreshNow(false); }, 400); });
+document.addEventListener('visibilitychange', function() { if (!document.hidden && liveAuto.checked) refreshNow(false); });
+
+function initSlotSelects() {
 document.querySelectorAll('.slot-select').forEach(function(sel) {
     var siteId  = sel.getAttribute('data-site-id');
     var current = sel.value;
@@ -548,6 +665,8 @@ document.querySelectorAll('.slot-select').forEach(function(sel) {
             });
         });
 });
+}
+initSlotSelects();
 
 function updateSlot(lineId, slot) {
     fetch('{{ route("planning.update_slot") }}', {
@@ -596,9 +715,9 @@ function basculerRetards() {
     .then(r => r.json())
     .then(d => {
         if (d.success) {
-            document.getElementById('retard-banner').remove();
+            var rb = document.getElementById('retard-banner'); if (rb) rb.remove();
             showToast(d.count + ' pièce(s) basculée(s) sur le prochain créneau disponible', 'success');
-            setTimeout(() => location.reload(), 2000);
+            setTimeout(() => refreshNow(true), 1500);
         }
     });
 }
@@ -657,7 +776,7 @@ function fermerPopup() {
     document.getElementById('retard-popup').style.display = 'none';
     if (window._retardModified) {
         window._retardModified = false;
-        location.reload();
+        refreshNow(true);
     }
 }
 
@@ -825,6 +944,12 @@ function clearSearch() {
 
 searchPiece.addEventListener('input', applySearch);
 searchVendeur.addEventListener('input', applySearch);
+
+// ── Initialisation ────────────────────────────────────────────
+lastSig = zonesSig(document);
+setLiveStatus('Chargé ' + new Date().toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'}));
+applyGroupState();
+liveSchedule();
 </script>
 </body>
 </html>

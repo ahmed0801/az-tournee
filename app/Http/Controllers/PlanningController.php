@@ -103,9 +103,6 @@ class PlanningController extends Controller
         }
     }
 
-    $lignesMatin     = $toutesLignes->whereIn('slot', ['matin','9h-11h','11h-12h'])->groupBy('fournisseur_name');
-    $lignesApresMidi = $toutesLignes->whereIn('slot', ['apres_midi','13h-14h','15h-16h','17h-18h'])->groupBy('fournisseur_name');
-
     // Stats
     $statsQuery = TourneeLine::query();
     if ($modeHistorique) {
@@ -122,20 +119,22 @@ class PlanningController extends Controller
     }
     if ($filteredSiteId) $statsQuery->where('site_id', $filteredSiteId);
 
+    // Une seule requête groupée au lieu de 8 COUNT
+    $parStatut = (clone $statsQuery)->selectRaw('statut, COUNT(*) AS c')->groupBy('statut')->pluck('c', 'statut');
     $stats = [
-        'total'         => (clone $statsQuery)->count(),
-        'en_attente'    => (clone $statsQuery)->where('statut', 'en_attente')->count(),
-        'assigné'       => (clone $statsQuery)->where('statut', 'assigné')->count(),
-        'en_route'      => (clone $statsQuery)->where('statut', 'en_route')->count(),
-        'recupere'      => (clone $statsQuery)->where('statut', 'recupere')->count(),
-        'au_magasin'    => (clone $statsQuery)->where('statut', 'au_magasin')->count(),
-        'probleme'      => (clone $statsQuery)->where('statut', 'probleme')->count(),
+        'total'         => (int) $parStatut->sum(),
+        'en_attente'    => (int) ($parStatut['en_attente'] ?? 0),
+        'assigné'       => (int) ($parStatut['assigné'] ?? 0),
+        'en_route'      => (int) ($parStatut['en_route'] ?? 0),
+        'recupere'      => (int) ($parStatut['recupere'] ?? 0),
+        'au_magasin'    => (int) ($parStatut['au_magasin'] ?? 0),
+        'probleme'      => (int) ($parStatut['probleme'] ?? 0),
         'non_assignees' => (clone $statsQuery)->whereNull('chauffeur_id')
                                ->whereNotIn('statut', ['recupere', 'au_magasin'])->count(),
     ];
 
     return view('planning.index', compact(
-        'lignesMatin', 'lignesApresMidi', 'lignesParCreneau',
+        'lignesParCreneau',
         'chauffeurs', 'sites', 'date', 'stats', 'filteredSiteId',
         'modeHistorique', 'dateFrom', 'dateTo',
         'searchArticle', 'searchNumdoc'
