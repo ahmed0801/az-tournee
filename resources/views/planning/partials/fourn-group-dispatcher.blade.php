@@ -106,6 +106,13 @@
                     <i class="fas fa-exclamation"></i> {{ Str::limit($ligne->probleme_notes, 30) }}
                 </small>
             @endif
+
+            {{-- Supprimer la ligne (à droite de chaque ligne) --}}
+            <button type="button" class="line-del ms-auto" title="Supprimer cette ligne"
+                    aria-label="Supprimer la ligne {{ $ligne->article_code }}"
+                    onclick="event.stopPropagation(); deleteLine({{ $ligne->id }}, this)">
+                <i class="fas fa-trash-alt"></i><span>Supprimer</span>
+            </button>
         </div>
         @endforeach
     </div>

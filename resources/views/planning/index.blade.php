@@ -121,6 +121,12 @@
         #btn-live.pending { background: #e67e00; animation: livePulse 1.4s infinite; }
         @keyframes livePulse { 0%,100% { box-shadow: 0 0 0 0 rgba(230,126,0,.5); } 50% { box-shadow: 0 0 0 8px rgba(230,126,0,0); } }
         .filter-result-count { font-size: 0.75rem; color: #6b7a99; margin-left: auto; }
+
+        /* ── Bouton supprimer devant chaque ligne ─────────── */
+        .line-del { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px; border: 1.5px solid #fca5a5; background: #fff5f5; color: #dc2626; border-radius: 8px; padding: 5px 10px; font-size: .72rem; font-weight: 700; cursor: pointer; transition: background .15s, color .15s, border-color .15s; }
+        .line-del:hover, .line-del:focus-visible { background: #dc2626; border-color: #dc2626; color: #fff; outline: none; }
+        .line-del:disabled { opacity: .6; cursor: wait; }
+        @media (max-width: 576px) { .line-del span { display: none; } .line-del { padding: 7px 9px; } }
     </style>
 </head>
 <body>
@@ -705,19 +711,25 @@ function updateDate(lineId, date) {
 }
 
 function deleteLine(lineId, btn) {
-    if (!confirm('Supprimer cette ligne ?')) return;
+    var row = document.getElementById('line-row-' + lineId);
+    var code = row ? row.getAttribute('data-search-code') : '';
+    if (!confirm('Supprimer définitivement cette ligne' + (code ? ' (' + code + ')' : '') + ' ?')) return;
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; }
     fetch('/planning/delete-line/' + lineId, {
         method: 'DELETE', credentials: 'same-origin',
-        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
-    }).then(r => r.json()).then(d => {
-        if (d.success) { var row = document.getElementById('line-row-' + lineId); if (row) row.remove(); }
-        else alert('Erreur suppression');
+        headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' }
+    }).then(function(r) { return r.json(); }).then(function(d) {
+        if (!d.success) throw new Error('refus');
+        var card = row ? row.closest('.fourn-card') : null;
+        if (row) row.remove();
+        if (card && card.querySelectorAll('.line-row').length === 0) card.remove();   // fournisseur sans pièce : on retire le bloc
+        showToast('Ligne supprimée', 'success');
+        refreshNow(true);                                                              // compteurs et statistiques à jour
+    }).catch(function() {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-trash-alt"></i><span>Supprimer</span>'; }
+        showToast('Suppression impossible', 'danger');
     });
 }
-
-
-
-
 
 
 function basculerRetards() {
